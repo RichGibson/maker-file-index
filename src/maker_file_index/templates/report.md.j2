@@ -1,0 +1,39 @@
+# Maker File Index v2
+
+Generated: {{ generated_at }}
+
+Files scanned: {{ records|length }}
+
+---
+
+(todo)
+
+- link to lightburn files
+- link to scad files
+- link to stl files
+---
+
+
+{% for r in records %}
+### {{ r.path }}
+
+{% if r.thumbnail_path %}
+<img src="{{ r.thumbnail_path }}" height="256">
+{% endif %}
+
+{% if r.notes %}
+**Notes**
+{{ r.notes }}
+
+{% else %}
+_No notes_
+{% endif %}
+
+{% if r.error %}
+**Error:** {{ r.error }}
+{% endif %}
+
+---
+
+{% endfor %}
+

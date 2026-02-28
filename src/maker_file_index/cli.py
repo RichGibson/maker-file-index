@@ -10,7 +10,12 @@ from maker_file_index.indexer import scan, write_markdown_report
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Index maker files (LightBurn first) with thumbnails and notes.")
-    parser.add_argument("target", help="File, directory, or glob (quote globs).")
+    parser.add_argument(
+    "target",
+    nargs="?",
+    default=".",
+    help="File, directory, or glob (quote globs)",
+)
     parser.add_argument("-o", "--output", default="lightburn_notes.md", help="Output Markdown filename.")
     parser.add_argument(
         "--no-recursive",

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from maker_file_index.plugins.loader import load_plugins
 from maker_file_index.plugins.base import IndexRecord  # or whatever you named your generic record
+from jinja2 import Environment, PackageLoader, select_autoescape
 
 plugins=load_plugins()
 
@@ -49,7 +50,6 @@ def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
     #files = [f for f in files if is_likely_lightburn_project(f)]
     return sorted({f.resolve() for f in files}, key=lambda x: str(x).lower())
 
-
 def md_escape_cell(text: str) -> str:
     if text is None:
         return ""
@@ -57,41 +57,26 @@ def md_escape_cell(text: str) -> str:
     t = t.replace("\n", "<br>")
     return t
 
-
-#def write_markdown_report(records: list[LightBurnInfo], output_path: Path, root_for_rel: Path | None = None) -> None:
-
-def write_markdown_report(records: list[IndexRecord], output_path: Path, root_for_rel: Path | None = None) -> None:
+def write_markdown_report(records, output_path: Path, root_for_rel: Path | None = None) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    now_iso = datetime.now().astimezone().isoformat(timespec="seconds")
-    lines: list[str] = []
-    lines.append(f"# LightBurn Notes Report - {now_iso}")
-    lines.append("")
-    lines.append(f"- Files scanned: **{len(records)}**")
-    lines.append("")
-    lines.append("| Thumbnail | File | Notes | Error |")
-    lines.append("|---|---|---|---|")
+    env = Environment(
+        loader=PackageLoader("maker_file_index", "templates"),
+        autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+    )
 
-    for r in records:
-        display_path = r.path
-        if root_for_rel is not None:
-            try:
-                display_path = r.path.relative_to(root_for_rel)
-            except Exception:
-                display_path = r.path
+    template = env.get_template("report.md.j2")
 
-        thumb = ""
-        if r.thumbnail_path and str(r.thumbnail_path) not in {"", "."} and r.thumbnail_path.exists():
-            thumb = f"<img src='{r.thumbnail_path}' height=256 width=256>"
+    generated_at = datetime.now().astimezone().strftime(
+        "%B %d, %Y %I:%M %p"
+    ).lstrip("0").replace("AM", "am").replace("PM", "pm")
 
-        file_cell = md_escape_cell(str(display_path))
-        notes_cell = md_escape_cell(r.notes)
-        err_cell = md_escape_cell(r.error)
+    rendered = template.render(
+        records=records,
+        generated_at=generated_at,
+    )
+    output_path.write_text(rendered, encoding="utf-8")
 
-        lines.append(f"{thumb} | `{file_cell}` | {notes_cell} | {err_cell} |")
-
-    lines.append("")
-    output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
 
@@ -113,8 +98,3 @@ def scan(target: str, recursive: bool = True, debug_plugins: bool = False) -> li
         # else: unsupported file type, skip for now
 
     return records
-
-
-#def scan_lightburn(target: str, recursive: bool = True) -> list[LightBurnInfo]:
-#    files = resolve_inputs(target, recursive=recursive)
-    #return [extract_notes_and_thumbnail(p) for p in files]
