@@ -25,17 +25,28 @@ def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
     p = Path(target).expanduser()
 
     if p.exists() and p.is_file():
-        return [p.resolve()] if is_likely_lightburn_project(p) else []
+        return [p.resolve()] 
+        #return [p.resolve()] if is_likely_lightburn_project(p) else []
 
     if p.exists() and p.is_dir():
         pattern = "**/*" if recursive else "*"
-        files = [x for x in p.glob(pattern) if is_likely_lightburn_project(x)]
+        files = [
+            x for x in p.glob(pattern)
+            if x.is_file() and not x.name.endswith("_thumbnail.png")
+        ]
+        #files = [x for x in p.glob(pattern) if x.is_file()]
+        #files = [x for x in p.glob(pattern) if is_likely_lightburn_project(x)]
         return sorted({f.resolve() for f in files}, key=lambda x: str(x).lower())
 
     # glob pattern
     matches = glob.glob(target, recursive=True)
-    files = [Path(m).expanduser() for m in matches if Path(m).is_file()]
-    files = [f for f in files if is_likely_lightburn_project(f)]
+    files = [
+        Path(m).expanduser()
+        for m in matches
+        if Path(m).is_file() and not Path(m).name.endswith("_thumbnail.png")
+    ]
+    #files = [Path(m).expanduser() for m in matches if Path(m).is_file()]
+    #files = [f for f in files if is_likely_lightburn_project(f)]
     return sorted({f.resolve() for f in files}, key=lambda x: str(x).lower())
 
 
