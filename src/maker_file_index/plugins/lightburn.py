@@ -115,3 +115,20 @@ def extract_notes_and_thumbnail(path: Path, *, overwrite_thumbnail: bool = True)
         return LightBurnInfo(path=path, notes="", thumbnail_path=Path(""), error=f"XML parse error: {e}")
     except Exception as e:
         return LightBurnInfo(path=path, notes="", thumbnail_path=Path(""), error=f"{type(e).__name__}: {e}")
+
+from maker_file_index.plugins.base import FilePlugin, IndexRecord
+
+class LightBurnPlugin:
+    name = "lightburn"
+
+    def can_handle(self, path: Path) -> bool:
+        return is_likely_lightburn_project(path)
+
+    def index(self, path: Path) -> IndexRecord:
+        info = extract_notes_and_thumbnail(path, overwrite_thumbnail=True)
+        return IndexRecord(
+            path=info.path,
+            notes=info.notes,
+            thumbnail_path=info.thumbnail_path,
+            error=info.error,
+        )

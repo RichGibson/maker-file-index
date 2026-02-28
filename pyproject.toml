@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maker-file-index"
+version = "0.1.0"
+description = "Index maker files (LightBurn first) with thumbnails and notes."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Rich Gibson" }
+]
+dependencies = []
+
+[project.scripts]
+maker-file-index = "maker_file_index.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.entry-points."maker_file_index.plugins"]
+lightburn = "maker_file_index.plugins.lightburn:LightBurnPlugin"

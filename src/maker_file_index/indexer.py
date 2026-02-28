@@ -4,6 +4,11 @@ import glob
 from datetime import datetime
 from pathlib import Path
 
+from maker_file_index.plugins.loader import load_plugins
+from maker_file_index.plugins.base import IndexRecord  # or whatever you named your generic record
+
+plugins=load_plugins()
+
 from maker_file_index.plugins.lightburn import (
     LightBurnInfo,
     extract_notes_and_thumbnail,
@@ -42,7 +47,9 @@ def md_escape_cell(text: str) -> str:
     return t
 
 
-def write_markdown_report(records: list[LightBurnInfo], output_path: Path, root_for_rel: Path | None = None) -> None:
+#def write_markdown_report(records: list[LightBurnInfo], output_path: Path, root_for_rel: Path | None = None) -> None:
+
+def write_markdown_report(records: list[IndexRecord], output_path: Path, root_for_rel: Path | None = None) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     now_iso = datetime.now().astimezone().isoformat(timespec="seconds")
@@ -76,6 +83,27 @@ def write_markdown_report(records: list[LightBurnInfo], output_path: Path, root_
     output_path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def scan_lightburn(target: str, recursive: bool = True) -> list[LightBurnInfo]:
+
+def scan(target: str, recursive: bool = True, debug_plugins: bool = False) -> list[IndexRecord]:
     files = resolve_inputs(target, recursive=recursive)
-    return [extract_notes_and_thumbnail(p) for p in files]
+    plugins = load_plugins()
+
+    records: list[IndexRecord] = []
+    for p in files:
+        for plugin in plugins:
+            if plugin.can_handle(p):
+                if debug_plugins:
+                    print(f"[plugin:{plugin.name}] {p}")
+                records.append(plugin.index(p))
+                break
+        else:
+            if debug_plugins:
+                print(f"[no-plugin] {p}")
+        # else: unsupported file type, skip for now
+
+    return records
+
+
+#def scan_lightburn(target: str, recursive: bool = True) -> list[LightBurnInfo]:
+#    files = resolve_inputs(target, recursive=recursive)
+    #return [extract_notes_and_thumbnail(p) for p in files]

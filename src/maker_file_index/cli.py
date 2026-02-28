@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 import pdb
 
-from maker_file_index.indexer import scan_lightburn, write_markdown_report
+from maker_file_index.indexer import scan, write_markdown_report
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -22,10 +22,16 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="If provided, file paths in the report are written relative to this directory.",
     )
+    parser.add_argument(
+    "--debug-plugins",
+    action="store_true",
+    help="Show which plugin handles each file.",
+)
     args = parser.parse_args(argv)
 
     recursive = not args.no_recursive
-    records = scan_lightburn(args.target, recursive=recursive)
+    #records = scan(args.target, recursive=recursive)
+    records = scan(args.target, recursive=recursive, debug_plugins=args.debug_plugins)
 
     if not records:
         print(f"ERROR: No LightBurn files found for target: {args.target}", file=sys.stderr)
