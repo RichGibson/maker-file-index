@@ -1,0 +1,47 @@
+# {{ directory }}
+
+Generated: {{ generated_at }}
+
+---
+
+## Subdirectories
+
+{% if subdirs %}
+{% for d in subdirs %}
+- [{{ d.name }}]({{ d.link }}) - [{{ d.readme_title }}]({{ d.readme_link }})
+{% endfor %}
+{% else %}
+_None_
+{% endif %}
+
+---
+
+## Files
+
+{% if records %}
+{% for r in records %}
+### {{ r.path.name }}
+
+{% if r.thumbnail_path %}
+<img src="{{ r.thumbnail_path }}" height="256">
+{% endif %}
+
+{% if r.notes %}
+**Notes**
+
+
+{{ r.notes }}
+
+{% else %}
+_No notes_
+{% endif %}
+
+{% if r.error %}
+**Error:** {{ r.error }}
+{% endif %}
+
+---
+{% endfor %}
+{% else %}
+_No files_
+{% endif %}

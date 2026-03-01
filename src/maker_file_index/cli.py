@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+from maker_file_index.indexer import scan, write_markdown_report, write_directory_pages
 import pdb
 
 from maker_file_index.indexer import scan, write_markdown_report
@@ -45,6 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     out_path = Path(args.output).expanduser().resolve()
     root_for_rel = Path(args.relpath_root).resolve() if args.relpath_root else None
     write_markdown_report(records, out_path, root_for_rel=root_for_rel)
+    write_directory_pages(records, out_dir=out_path.parent, root_dir=Path(args.target).expanduser().resolve() if Path(args.target).expanduser().is_dir() else Path(args.target).expanduser().resolve().parent)
 
     print(str(out_path))
     return 0

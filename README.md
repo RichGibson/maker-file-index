@@ -22,6 +22,11 @@ maker-file-index <path> --debug-plugins
 ```bash
 maker-file-index TARGET [options]
 
+Creates lightburn_notes.md in the current directory which contains all of the files, and dirs/index.md which is a
+link to the individual directories and their files. 
+
+dirs/index.md is where the future lies!
+
 ## Arguments
 
 ### TARGET
