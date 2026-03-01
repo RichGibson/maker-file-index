@@ -15,6 +15,7 @@ class STLPlugin:
         # placeholder — no thumbnail yet
         return IndexRecord(
             path=path,
+            directory=path.parent,
             notes="",
             thumbnail_path=Path(""),
             error="",

@@ -128,6 +128,7 @@ class LightBurnPlugin:
         info = extract_notes_and_thumbnail(path, overwrite_thumbnail=True)
         return IndexRecord(
             path=info.path,
+            directory=path.parent,
             notes=info.notes,
             thumbnail_path=info.thumbnail_path,
             error=info.error,
