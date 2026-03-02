@@ -52,6 +52,13 @@ Make file paths in the report relative to this directory.
 
 Show which plugin handles each file (useful for debugging).
 
+## Utilities
+
+### Extract Notes
+
+`lightburn_extract_notes <filename>`
+
+Reads a LightBurn file and extracts the notes.
 ## Status
 
 Working prototype.
