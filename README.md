@@ -59,6 +59,14 @@ Show which plugin handles each file (useful for debugging).
 `lightburn_extract_notes <filename>`
 
 Reads a LightBurn file and extracts the notes.
+
+### Extract Text
+
+`lightburn_extract_text <filename>`
+
+Reads a LightBurn file and extracts the text.
+
+
 ## Status
 
 Working prototype.
