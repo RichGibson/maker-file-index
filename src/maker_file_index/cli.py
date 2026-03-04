@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from maker_file_index.indexer import scan, write_markdown_report, write_directory_pages
-import pdb
 
-from maker_file_index.indexer import scan, write_markdown_report
+from maker_file_index.indexer import scan
+from maker_file_index.renderers.markdown import write_markdown_report, write_directory_pages
+import pdb
 
 
 def main(argv: list[str] | None = None) -> int:

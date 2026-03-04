@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from maker_file_index.plugins.base import IndexRecord
+from maker_file_index.model import IndexRecord
 
 
 class SCADPlugin:

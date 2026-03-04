@@ -5,7 +5,8 @@ import binascii
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from maker_file_index.plugins.base import FilePlugin, IndexRecord
+from maker_file_index.plugins.base import FilePlugin
+from maker_file_index.model import IndexRecord
 
 
 LIKELY_EXTS = {".lbrn2", ".lbrn"}
