@@ -8,7 +8,7 @@ Generated: {{ generated_at }}
 
 {% if subdirs %}
 {% for d in subdirs %}
-- [{{ d.name }}]({{ d.link }}){% if d.readme_title %} — [{{ d.readme_title }}]({{ d.readme_link }}){% endif %}
+- [{{ d.name }}]({{ d.link }}){% if d.readme_title %} — [{{ d.readme_title }}]({{ d.readme_link }}){% endif %}{% if d.counts %} {{ d.counts }}{% endif %}
 {% endfor %}
 {% else %}
 _None_

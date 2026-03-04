@@ -49,6 +49,13 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
     ).lstrip("0").replace("AM", "am").replace("PM", "pm")
 
     grouped = group_by_directory(records)
+    def format_ext_counts(ext_counts: dict) -> str:
+        if not ext_counts:
+            return ""
+        items = sorted(ext_counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        parts = [f"{n} {ext}" for ext, n in items]
+        return f"({', '.join(parts)})"
+
 
     # Compute page path for every directory we know about (plus ancestors up to root)
     all_dirs = set(grouped.keys())
@@ -102,10 +109,12 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
 
                 #pdb.set_trace()
 
+                child_counts = grouped.get(child, {}).get("ext_counts", {})
                 subdirs.append(
                     {
                         "name": child.name,
                         "link": str(link),
+                        "counts": format_ext_counts(child_counts), 
                         "readme_title": readme_title,
                         "readme_link": readme_link,
                     }
@@ -121,7 +130,7 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
 
 
         # Records that live directly in this directory
-        recs = grouped.get(d, [])
+        recs = grouped.get(d, {}).get("records", [])
         recs = sorted(recs, key=lambda r: r.path.name.lower())
 
         rendered = template.render(

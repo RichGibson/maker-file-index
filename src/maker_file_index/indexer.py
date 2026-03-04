@@ -19,12 +19,17 @@ plugins=load_plugins()
 #    is_likely_lightburn_project,
 #)
 
-def group_by_directory(records):
-    grouped = defaultdict(list)
-    for r in records:
-        grouped[r.directory].append(r)
 
-    print(f"in group by directory")
+from collections import defaultdict
+
+def group_by_directory(records):
+    grouped = defaultdict(lambda: {"records": [], "ext_counts": defaultdict(int)})
+
+    for r in records:
+        grouped[r.directory]["records"].append(r)
+        ext = r.path.suffix.lower().lstrip(".") or "<no-ext>"
+        grouped[r.directory]["ext_counts"][ext] += 1
+
     return grouped
 
 def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
