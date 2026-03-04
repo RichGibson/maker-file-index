@@ -32,5 +32,8 @@ where = ["src"]
 lightburn = "maker_file_index.plugins.lightburn:LightBurnPlugin"
 stl = "maker_file_index.plugins.stl:STLPlugin"
 scad = "maker_file_index.plugins.scad:SCADPlugin"
+3mf = "maker_file_index.plugins.three_mf:ThreeMFPlugin"
+svg = "maker_file_index.plugins.svg:SVGPlugin"
+dxf = "maker_file_index.plugins.dxf:DXFPlugin"
 
 

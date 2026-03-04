@@ -76,13 +76,14 @@ def scan(target: str, recursive: bool = True, debug_plugins: bool = False) -> li
     files = resolve_inputs(target, recursive=recursive)
     plugins = load_plugins()
     no_plugin_count = Counter()
-
+    plugin_count = Counter()
     records: list[IndexRecord] = []
     for p in files:
         for plugin in plugins:
             if plugin.can_handle(p):
                 if debug_plugins:
                     print(f"[plugin:{plugin.name}] {p}")
+                plugin_count[p.suffix.lower() or "<no-ext>"] += 1
                 records.append(plugin.index(p))
                 break
         else:
@@ -94,4 +95,8 @@ def scan(target: str, recursive: bool = True, debug_plugins: bool = False) -> li
         print("\nNo-plugin summary by extension:")
         for ext, n in sorted(no_plugin_count.items(), key=lambda kv: (-kv[1], kv[0])):
             print(f"  {ext}: {n}")
+    print("\nplugin summary by extension:")
+    for ext, n in sorted(plugin_count.items(), key=lambda kv: (-kv[1], kv[0])):
+        print(f"  {ext}: {n}")
+    
     return records
