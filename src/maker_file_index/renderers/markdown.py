@@ -131,13 +131,24 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
 
         # Records that live directly in this directory
         recs = grouped.get(d, {}).get("records", [])
-        recs = sorted(recs, key=lambda r: r.path.name.lower())
+        from collections import defaultdict
+
+        by_ext = defaultdict(list)
+        for r in recs:
+            ext = r.path.suffix.lower().lstrip(".") or "<no-ext>"
+            by_ext[ext].append(r)
+
+        # sort extensions by descending count
+        by_ext = dict(
+            sorted(by_ext.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+        )
+        #recs = sorted(recs, key=lambda r: r.path.name.lower())
 
         rendered = template.render(
             directory=str(d),
             generated_at=generated_at,
             subdirs=subdirs,
-            records=recs,
+            by_ext=by_ext,
         )
         page_path.write_text(rendered, encoding="utf-8")
 
