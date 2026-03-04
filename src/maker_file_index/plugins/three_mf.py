@@ -3,7 +3,7 @@ import zipfile
 from pathlib import Path
 
 from maker_file_index.model import IndexRecord
-from maker_file_index.thumbnails import thumbnail_path_for, write_bytes
+from maker_file_index.thumbnails import thumbnail_path_for, write_bytes, thumbnail_is_fresh
 
 
 class ThreeMFPlugin:
@@ -31,6 +31,14 @@ class ThreeMFPlugin:
                     preview_name = preview_candidates[0]
                     #thumb_path = path.with_name(path.stem + "_thumbnail.png")
                     thumb_path=thumbnail_path_for(path)
+                    if thumbnail_is_fresh(path, thumb_path):
+                        return IndexRecord(
+                            path=path,
+                            directory=path.parent,
+                            notes="",
+                            thumbnail_path=thumb_path,
+                            error="",
+                        )
                     data = z.read(preview_name)
                     write_bytes(thumb_path, data, overwrite=True)
 

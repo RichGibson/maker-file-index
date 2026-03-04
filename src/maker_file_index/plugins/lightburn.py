@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from maker_file_index.plugins.base import FilePlugin
 from maker_file_index.model import IndexRecord
+from maker_file_index.thumbnails import thumbnail_path_for, thumbnail_is_fresh, write_bytes
 
 
 LIKELY_EXTS = {".lbrn2", ".lbrn"}
@@ -65,15 +66,14 @@ def extract_thumbnail(input_path: Path, output_path: Path | None = None, overwri
         ext = _sniff_extension(blob)
         output_path = input_path.with_name(f"{input_path.stem}_thumbnail{ext}")
 
-    if output_path.exists() and not overwrite:
-        raise FileExistsError(f"Output file already exists: {output_path} (use overwrite=True)")
+    #if output_path.exists() and not overwrite:
+        #raise FileExistsError(f"Output file already exists: {output_path} (use overwrite=True)")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(blob)
     return output_path
 
-
-def extract_notes_and_thumbnail(path: Path, *, overwrite_thumbnail: bool = True) -> IndexRecord:
+def extract_notes_and_thumbnail(path: Path) -> IndexRecord:
     """
     Returns Notes (blank if missing) and writes/returns the extracted thumbnail path if present.
     Supports:
@@ -98,7 +98,8 @@ def extract_notes_and_thumbnail(path: Path, *, overwrite_thumbnail: bool = True)
         thumb_path = Path("")
         try:
             # thumbnail is optional; if missing, we keep blank
-            thumb_path = extract_thumbnail(path, overwrite=overwrite_thumbnail)
+            #thumb_path = extract_thumbnail(path, overwrite=overwrite_thumbnail)
+            thumb_path=thumbnail_path_for(path)
         except Exception:
             thumb_path = Path("")
 
@@ -135,7 +136,7 @@ class LightBurnPlugin:
         return is_likely_lightburn_project(path)
 
     def index(self, path: Path) -> IndexRecord:
-        info = extract_notes_and_thumbnail(path, overwrite_thumbnail=True)
+        info = extract_notes_and_thumbnail(path )
         return IndexRecord(
             path=info.path,
             directory=path.parent,
