@@ -49,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     write_directory_pages(records, out_dir=out_path.parent, root_dir=Path(args.target).expanduser().resolve() if Path(args.target).expanduser().is_dir() else Path(args.target).expanduser().resolve().parent)
 
     print(str(out_path))
+    print(f"/dirs/index.md")
     return 0
 
 

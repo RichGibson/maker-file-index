@@ -3,6 +3,7 @@ from __future__ import annotations
 import glob
 from datetime import datetime
 from pathlib import Path
+import os
 import pdb
 
 from maker_file_index.plugins.loader import load_plugins
@@ -12,11 +13,11 @@ from collections import defaultdict
 
 plugins=load_plugins()
 
-from maker_file_index.plugins.lightburn import (
-    LightBurnInfo,
-    extract_notes_and_thumbnail,
-    is_likely_lightburn_project,
-)
+#from maker_file_index.plugins.lightburn import (
+#    LightBurnInfo,
+#    extract_notes_and_thumbnail,
+#    is_likely_lightburn_project,
+#)
 
 def group_by_directory(records):
     grouped = defaultdict(list)
@@ -96,7 +97,8 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
                         readme_title = ""
 
                     # link to the README file relative to the directory index page
-                    readme_link = str(Path("../../../") / readme_path.relative_to(root_dir))
+                    #readme_link = str(Path("../../../") / readme_path.relative_to(root_dir))
+                    readme_link = os.path.relpath(readme_path, start=page_path.parent)
 
                 #pdb.set_trace()
 

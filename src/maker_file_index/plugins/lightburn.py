@@ -5,22 +5,14 @@ import binascii
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
+from maker_file_index.plugins.base import FilePlugin, IndexRecord
 
 
 LIKELY_EXTS = {".lbrn2", ".lbrn"}
 
 
-@dataclass(frozen=True)
-class LightBurnInfo:
-    path: Path
-    notes: str
-    thumbnail_path: Path = Path("")
-    error: str = ""
-
-
 def is_likely_lightburn_project(path: Path) -> bool:
     return path.is_file() and path.suffix.lower() in LIKELY_EXTS
-
 
 def _find_thumbnail_b64(root: ET.Element) -> str:
     for thumb in root.iter("Thumbnail"):
@@ -80,7 +72,7 @@ def extract_thumbnail(input_path: Path, output_path: Path | None = None, overwri
     return output_path
 
 
-def extract_notes_and_thumbnail(path: Path, *, overwrite_thumbnail: bool = True) -> LightBurnInfo:
+def extract_notes_and_thumbnail(path: Path, *, overwrite_thumbnail: bool = True) -> IndexRecord:
     """
     Returns Notes (blank if missing) and writes/returns the extracted thumbnail path if present.
     Supports:
@@ -109,14 +101,31 @@ def extract_notes_and_thumbnail(path: Path, *, overwrite_thumbnail: bool = True)
         except Exception:
             thumb_path = Path("")
 
-        return LightBurnInfo(path=path, notes=notes_text, thumbnail_path=thumb_path)
+        return IndexRecord(
+            path=path,
+            directory=path.parent,
+            notes=notes_text,
+            thumbnail_path=thumb_path,
+            error="",
+        )
 
     except ET.ParseError as e:
-        return LightBurnInfo(path=path, notes="", thumbnail_path=Path(""), error=f"XML parse error: {e}")
+        return IndexRecord(
+            path=path,
+            directory=path.parent,
+            notes=notes_text,
+            thumbnail_path=thumb_path,
+            error="",
+        )
     except Exception as e:
-        return LightBurnInfo(path=path, notes="", thumbnail_path=Path(""), error=f"{type(e).__name__}: {e}")
+        return IndexRecord(
+            path=path,
+            directory=path.parent,
+            notes=notes_text,
+            thumbnail_path=thumb_path,
+            error="",
+        )
 
-from maker_file_index.plugins.base import FilePlugin, IndexRecord
 
 class LightBurnPlugin:
     name = "lightburn"
