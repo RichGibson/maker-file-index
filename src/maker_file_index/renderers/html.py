@@ -27,6 +27,37 @@ def _format_ext_counts(ext_counts: dict) -> str:
     parts = [f"{n} {ext}" for ext, n in items]
     return f"({', '.join(parts)})"
 
+def build_tree(
+    base: Path,
+    dirs: set[Path],
+    *,
+    page_path_for_dir,
+    current_page_dir: Path,
+) -> list[dict]:
+    """
+    Build a nested directory tree starting at base.
+    Each node includes a link to that directory's index.html relative to current_page_dir.
+    """
+    children = [d for d in dirs if d.parent == base and d != base]
+    children = sorted(children, key=lambda x: x.name.lower())
+
+    nodes: list[dict] = []
+    for c in children:
+        link = os.path.relpath(page_path_for_dir(c), start=current_page_dir)
+        nodes.append(
+            {
+                "name": c.name,
+                "link": link,
+                "children": build_tree(
+                    c,
+                    dirs,
+                    page_path_for_dir=page_path_for_dir,
+                    current_page_dir=current_page_dir,
+                ),
+            }
+        )
+
+    return nodes
 
 def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
     """
@@ -140,11 +171,23 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 }
             )
 
+        show_tree= (d != root_dir) 
+        tree_data=[]
+        if show_tree:
+            tree_data = build_tree(
+                    d,
+                    set(all_dirs),
+                    page_path_for_dir=page_path_for_dir,
+                    current_page_dir=page_path.parent,
+            )
+
         rendered = template.render(
             directory=str(d),
             generated_at=generated_at,
             subdirs=subdirs,
             file_cards=file_cards,
+            tree_data=tree_data,
+            show_tree=show_tree
         )
 
         page_path.write_text(rendered, encoding="utf-8")
