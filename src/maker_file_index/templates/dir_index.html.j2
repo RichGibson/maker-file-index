@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ directory }}</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; line-height: 1.35; }
+    h1 { margin: 0 0 6px 0; }
+    .meta { color: #666; margin-bottom: 18px; }
+    .section { margin-top: 22px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+    }
+    .thumb {
+      width: 100%;
+      height: 170px;
+      border-radius: 8px;
+      object-fit: contain;
+      background: #f6f6f6;
+      border: 1px solid #eee;
+    }
+    .label { margin-top: 8px; font-size: 14px; }
+    .label a { color: inherit; text-decoration: none; }
+    .label a:hover { text-decoration: underline; }
+    .sub { margin-top: 6px; color: #666; font-size: 13px; }
+    .muted { color: #888; font-size: 13px; }
+    code { background: #f3f3f3; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+
+<body>
+  <h1>{{ directory }}</h1>
+  <div class="meta">Generated: {{ generated_at }}</div>
+
+  <div class="section">
+    <h2>Directories</h2>
+    {% if subdirs %}
+    <div class="grid">
+      {% for d in subdirs %}
+      <div class="card">
+        {% if d.first_thumb %}
+          <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
+        {% else %}
+          <a href="{{ d.link }}"><div class="thumb"></div></a>
+        {% endif %}
+        <div class="label">
+          <a href="{{ d.link }}"><strong>{{ d.name }}</strong></a>
+          {% if d.counts %} <span class="muted">{{ d.counts }}</span>{% endif %}
+        </div>
+        {% if d.readme_title and d.readme_link %}
+          <div class="sub"><a href="{{ d.readme_link }}">{{ d.readme_title }}</a></div>
+        {% else %}
+          <div class="sub muted">No README</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="muted">None</div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <h2>Files</h2>
+    {% if file_cards %}
+    <div class="grid">
+      {% for f in file_cards %}
+      <div class="card">
+        {% if f.thumb %}
+          <a href="{{ f.path }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
+        {% else %}
+          <div class="thumb"></div>
+        {% endif %}
+        <div class="label">
+          <strong>{{ f.display }}</strong>
+        </div>
+        {% if f.ext %}
+          <div class="sub muted"><code>{{ f.ext }}</code></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="muted">No files</div>
+    {% endif %}
+  </div>
+</body>
+</html>
