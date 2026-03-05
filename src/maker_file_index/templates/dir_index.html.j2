@@ -40,83 +40,110 @@
 	.tree a { text-decoration: none; }
 	.tree a:hover { text-decoration: underline; }
 	.tree .title { font-weight: 600; margin-bottom: 6px; }
+
+
+	.layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; align-items: start; }
+	.sidebar { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; }
+	.main { min-width: 0; }
+	.sidebar .toplink { margin-bottom: 10px; }
+	.sidebar .toplink a { text-decoration: none; font-weight: 600; }
+	.sidebar .toplink a:hover { text-decoration: underline; }
+	.sidebar .title { font-weight: 700; margin: 6px 0 8px 0; }
   </style>
 </head>
-
 <body>
-  <h1>{{ directory }}</h1>
-  <div class="meta">Generated: {{ generated_at }}</div>
-	{% macro render_tree(nodes) -%}
-	<ul>
-	  {%- for n in nodes %}
-	  <li>
-		<a href="{{ n.link }}">{{ n.name }}</a>
-		{%- if n.children and n.children|length %}
-		  {{ render_tree(n.children) }}
-		{%- endif %}
-	  </li>
-	  {%- endfor %}
-	</ul>
-	{%- endmacro %}
 
-	{% if show_tree and tree_data %}
-	<div class="tree">
-	  <div class="title">Directory tree</div>
-	  {{ render_tree(tree_data) }}
-	</div>
-	{% endif %}
+{% macro render_tree(nodes) -%}
+<ul>
+  {%- for n in nodes %}
+  <li>
+    <a href="{{ n.link }}">{{ n.name }}</a>
+    {%- if n.children and n.children|length %}
+      {{ render_tree(n.children) }}
+    {%- endif %}
+  </li>
+  {%- endfor %}
+</ul>
+{%- endmacro %}
 
-  <div class="section">
-    <h2>Directories</h2>
-    {% if subdirs %}
-    <div class="grid">
-      {% for d in subdirs %}
-      <div class="card">
-        {% if d.first_thumb %}
-          <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
-        {% else %}
-          <a href="{{ d.link }}"><div class="thumb"></div></a>
-        {% endif %}
-        <div class="label">
-          <a href="{{ d.link }}"><strong>{{ d.name }}</strong></a>
-          {% if d.counts %} <span class="muted">{{ d.counts }}</span>{% endif %}
-        </div>
-        {% if d.readme_title and d.readme_link %}
-          <div class="sub"><a href="{{ d.readme_link }}">{{ d.readme_title }}</a></div>
-        {% else %}
-          <div class="sub muted">No README</div>
-        {% endif %}
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="toplink"><a href="{{ home_link }}">Back to top index</a></div>
+
+	<!-- I think I always want the tree in the sidebar, this is where to change that -->
+
+	<!-- { % if show_tree and tree_data %}-->
+    {% if tree_data %}
+	<!-- I think we know what it is? <div class="title">Directory tree</div>-->
+      <div class="tree">
+        {{ render_tree(tree_data) }}
       </div>
-      {% endfor %}
-    </div>
     {% else %}
-      <div class="muted">None</div>
+      <div class="title"> (no subdirectories) </div>
     {% endif %}
-  </div>
 
-  <div class="section">
-    <h2>Files</h2>
-    {% if file_cards %}
-    <div class="grid">
-      {% for f in file_cards %}
-      <div class="card">
-        {% if f.thumb %}
-          <a href="{{ f.path }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
-        {% else %}
-          <div class="thumb"></div>
-        {% endif %}
-        <div class="label">
-          <strong>{{ f.display }}</strong>
+
+  </aside>
+
+  <main class="main">
+    <h1>{{ directory_name }}</h1>
+    <div class="meta">Generated: {{ generated_at }}</div>
+
+    <div class="section">
+      <h2>Directories</h2>
+      {% if subdirs %}
+      <div class="grid">
+        {% for d in subdirs %}
+        <div class="card">
+          {% if d.first_thumb %}
+            <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
+          {% else %}
+            <a href="{{ d.link }}"><div class="thumb"></div></a>
+          {% endif %}
+          <div class="label">
+            <a href="{{ d.link }}"><strong>{{ d.name }}</strong></a>
+            {% if d.counts %} <span class="muted">{{ d.counts }}</span>{% endif %}
+          </div>
+          {% if d.readme_title and d.readme_link %}
+            <div class="sub"><a href="{{ d.readme_link }}">{{ d.readme_title }}</a></div>
+          {% else %}
+            <div class="sub muted">No README</div>
+          {% endif %}
         </div>
-        {% if f.ext %}
-          <div class="sub muted"><code>{{ f.ext }}</code></div>
-        {% endif %}
+        {% endfor %}
       </div>
-      {% endfor %}
+      {% else %}
+        <div class="muted">None</div>
+      {% endif %}
     </div>
-    {% else %}
-      <div class="muted">No files</div>
-    {% endif %}
-  </div>
-</body>
+
+    <div class="section">
+      <h2>Files</h2>
+      {% if file_cards %}
+      <div class="grid">
+        {% for f in file_cards %}
+        <div class="card">
+          {% if f.thumb %}
+            <a href="{{ f.path }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
+          {% else %}
+            <div class="thumb"></div>
+          {% endif %}
+          <div class="label">
+            <strong>{{ f.display }}</strong>
+          </div>
+          {% if f.ext %}
+            <div class="sub muted"><code>{{ f.ext }}</code></div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="muted">No files</div>
+      {% endif %}
+    </div>
+
+  </main>
+</div>
+
 </html>

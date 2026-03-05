@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
+import pdb
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
@@ -171,7 +172,8 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 }
             )
 
-        show_tree= (d != root_dir) 
+        show_tree= True
+        # show_tree= (d != root_dir) 
         tree_data=[]
         if show_tree:
             tree_data = build_tree(
@@ -181,13 +183,17 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                     current_page_dir=page_path.parent,
             )
 
+        home_link = os.path.relpath(page_path_for_dir(root_dir), start=page_path.parent)
+
         rendered = template.render(
             directory=str(d),
+            directory_name=str(d.name),
             generated_at=generated_at,
             subdirs=subdirs,
             file_cards=file_cards,
             tree_data=tree_data,
-            show_tree=show_tree
+            show_tree=show_tree,
+            home_link=home_link
         )
 
         page_path.write_text(rendered, encoding="utf-8")

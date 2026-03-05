@@ -1,5 +1,24 @@
 # dev README - my ugly work in progress notes.
 
+## next
+
+make the tree highlight the current directory, like:
+
+christmas
+├── E638 Layered Christmas Set
+│   ├── DXF
+│   ├── PNG
+│   └── SVG
+└── tea_light   ← highlighted
+
+One top-level HTML landing page that shows:
+
+• newest projects
+• directories with thumbnails
+• summary stats
+• search/filter
+
+
 ## Git
 
 Git Messages 
