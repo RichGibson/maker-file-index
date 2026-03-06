@@ -38,6 +38,8 @@
     .topnav { background: var(--nav-bg); border-bottom: 1px solid var(--nav-border); padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
     .topnav-brand { font-weight: 700; font-size: 15px; text-decoration: none; color: var(--text); }
     .topnav-right { position: relative; display: flex; align-items: center; gap: 10px; }
+    .sidebar-toggle { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; font-size: 15px; cursor: pointer; color: var(--text-dim); line-height: 1; }
+    .sidebar-toggle:hover { background: var(--surface-alt); }
     .settings-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--text-dim); }
     .settings-btn:hover { background: var(--surface-alt); }
     .settings-panel { display: none; position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; box-shadow: 0 4px 20px var(--shadow); min-width: 180px; z-index: 200; }
@@ -90,6 +92,8 @@
     .tree li.collapsed > ul { display: none; }
 
     .layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; align-items: start; padding: 20px 24px; }
+    .layout.sidebar-hidden { grid-template-columns: 1fr; }
+    .layout.sidebar-hidden .sidebar { display: none; }
     .sidebar { position: sticky; top: 57px; max-height: calc(100vh - 73px); overflow: auto; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--sidebar-bg); }
     .main { min-width: 0; }
     .sidebar .toplink { margin-bottom: 10px; }
@@ -114,6 +118,7 @@
 <nav class="topnav">
   <a class="topnav-brand" href="{{ home_link }}">Maker File Index</a>
   <div class="topnav-right">
+    <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">&#9776;</button>
     <button class="settings-btn" onclick="toggleSettings(event)">&#9881; Settings</button>
     <div class="settings-panel" id="settings-panel">
       <div class="settings-title">Appearance</div>
@@ -282,6 +287,18 @@ function toggleTree(btn) {
   li.classList.toggle('collapsed');
   btn.textContent = li.classList.contains('collapsed') ? '▸' : '▾';
 }
+
+/* Sidebar toggle */
+function toggleSidebar() {
+  var layout = document.querySelector('.layout');
+  layout.classList.toggle('sidebar-hidden');
+  localStorage.setItem('mfi-sidebar', layout.classList.contains('sidebar-hidden') ? '0' : '1');
+}
+(function() {
+  if (localStorage.getItem('mfi-sidebar') === '0') {
+    document.querySelector('.layout').classList.add('sidebar-hidden');
+  }
+})();
 
 /* Sidebar scroll persistence */
 (function() {
