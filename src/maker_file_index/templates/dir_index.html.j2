@@ -69,6 +69,7 @@
     .label a:hover { text-decoration: underline; }
     .sub { margin-top: 6px; color: var(--text-muted); font-size: 13px; }
     .notes-snippet { margin-top: 4px; font-size: 12px; color: var(--text-faint); line-height: 1.4; }
+    .readme-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; font-size: 14px; line-height: 1.7; white-space: pre-wrap; color: var(--text-dim); }
     .muted { color: var(--text-muted); font-size: 13px; }
     code { background: var(--surface-alt); padding: 2px 6px; border-radius: 6px; }
 
@@ -104,9 +105,10 @@
     .filter-sort-row input { flex: 1; min-width: 0; padding: 7px 12px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); }
     .filter-sort-row input:focus { border-color: var(--text-muted); }
     .sort-btns { display: flex; gap: 4px; flex-shrink: 0; }
-    .sort-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
+    .sort-btn { background: none; border: 2px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
     .sort-btn:hover { background: var(--surface-hover); }
-    .sort-btn.active { background: var(--surface-alt); font-weight: 600; color: var(--text); border-color: var(--text-muted); }
+    .sort-btn.active { background: #e8f0fe; border-color: #1a5cbe; color: #1a5cbe; font-weight: 700; }
+    [data-theme="dark"] .sort-btn.active { background: #1e3a5f; border-color: #7eb7ff; color: #7eb7ff; }
     .card.hidden { display: none; }
     .error-badge { margin-top: 6px; font-size: 11px; color: #c0392b; background: #fdf0ef; border: 1px solid #f5c6c2; border-radius: 6px; padding: 2px 7px; display: inline-block; }
     .card.has-error { border-color: #f5c6c2; }
@@ -199,15 +201,19 @@
     </div>
     {% endif %}
 
-    <h1>{{ directory_name }}</h1>
+    <h1>{{ readme_title if readme_title else directory_name }}</h1>
     <div class="meta">Generated: {{ generated_at }}</div>
+
+    {% if readme_content %}
+    <div class="readme-block">{{ readme_content }}</div>
+    {% endif %}
 
     {% if subdirs or file_cards %}
     <div class="filter-sort-row">
       <input type="search" id="page-filter" placeholder="Filter…" oninput="filterCards(this.value)" />
       <div class="sort-btns">
         <button class="sort-btn" data-sort="recent" onclick="setSort('recent')">Recent</button>
-        <button class="sort-btn" data-sort="alpha"  onclick="setSort('alpha')">A–Z</button>
+        <button class="sort-btn" data-sort="alpha"  onclick="setSort('alpha')">Name</button>
       </div>
     </div>
     {% endif %}
@@ -264,20 +270,49 @@
     </div>
     {% endif %}
 
+    <div class="section" id="subdir-files-section" style="display:none;">
+      <h2>Files in subdirectories</h2>
+      <div class="grid" id="subdir-file-grid"></div>
+    </div>
+
   </main>
 </div>
 
 <script>
 var activeType = null;
 var SORT_KEY = 'mfi-sort';
-var currentSort = localStorage.getItem(SORT_KEY) || 'recent';
+var currentSort = 'recent';
+var currentDir = 'desc';
+(function() {
+  var saved = localStorage.getItem(SORT_KEY) || 'recent-desc';
+  var parts = saved.split('-');
+  currentSort = parts[0] === 'alpha' ? 'alpha' : 'recent';
+  currentDir = parts[1] === 'asc' ? 'asc' : (parts[1] === 'desc' ? 'desc' : (currentSort === 'recent' ? 'desc' : 'asc'));
+})();
+
+function sortLabel(key, active, dir) {
+  if (!active) return key === 'recent' ? 'Recent' : 'Name';
+  if (key === 'recent') return dir === 'desc' ? 'Recent \u25BC' : 'Recent \u25B2';
+  return dir === 'asc' ? 'A\u2013Z \u25B2' : 'Z\u2013A \u25BC';
+}
+
+function updateSortButtons() {
+  document.querySelectorAll('.sort-btn').forEach(function(b) {
+    var active = b.dataset.sort === currentSort;
+    b.classList.toggle('active', active);
+    b.textContent = sortLabel(b.dataset.sort, active, currentDir);
+  });
+}
 
 function setSort(key) {
-  currentSort = key;
-  localStorage.setItem(SORT_KEY, key);
-  document.querySelectorAll('.sort-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.sort === key);
-  });
+  if (currentSort === key) {
+    currentDir = currentDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort = key;
+    currentDir = key === 'recent' ? 'desc' : 'asc';
+  }
+  localStorage.setItem(SORT_KEY, currentSort + '-' + currentDir);
+  updateSortButtons();
   ['dir-grid', 'file-grid'].forEach(function(id) { applySortToGrid(document.getElementById(id)); });
 }
 
@@ -285,18 +320,19 @@ function applySortToGrid(grid) {
   if (!grid) return;
   var cards = Array.from(grid.querySelectorAll(':scope > .card'));
   cards.sort(function(a, b) {
+    var r;
     if (currentSort === 'alpha') {
-      return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+      r = (a.dataset.name || '').localeCompare(b.dataset.name || '');
+    } else {
+      r = parseInt(b.dataset.mtime || '0') - parseInt(a.dataset.mtime || '0');
     }
-    return parseInt(b.dataset.mtime || '0') - parseInt(a.dataset.mtime || '0');
+    return currentDir === 'asc' ? -r : r;
   });
   cards.forEach(function(c) { grid.appendChild(c); });
 }
 
 (function() {
-  document.querySelectorAll('.sort-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.sort === currentSort);
-  });
+  updateSortButtons();
   ['dir-grid', 'file-grid'].forEach(function(id) { applySortToGrid(document.getElementById(id)); });
 })();
 
@@ -308,7 +344,7 @@ function applyFilters() {
     card.classList.toggle('hidden', !nameMatch || !typeMatch);
   });
 }
-function filterCards(q) { applyFilters(); }
+function filterCards(q) { applyFilters(); renderSubdirResults(q.toLowerCase().trim()); }
 function toggleType(btn) {
   var key = btn.dataset.key;
   if (activeType === key) {
@@ -373,6 +409,31 @@ function toggleSidebar() {
   });
 })();
 
+/* Subdir file search */
+var SUBDIR_FILES = (function() {
+  try { return JSON.parse(document.getElementById('subdir-files-data').textContent); } catch(e) { return []; }
+})();
+
+function renderSubdirResults(q) {
+  var section = document.getElementById('subdir-files-section');
+  var grid = document.getElementById('subdir-file-grid');
+  if (!q || !SUBDIR_FILES.length) { section.style.display = 'none'; grid.innerHTML = ''; return; }
+  var matches = SUBDIR_FILES.filter(function(f) { return f.name.toLowerCase().includes(q); });
+  if (!matches.length) { section.style.display = 'none'; grid.innerHTML = ''; return; }
+  section.style.display = '';
+  grid.innerHTML = matches.map(function(f) {
+    var extCls = ['lbrn2','lbrn','stl','scad','3mf','svg','dxf'].includes(f.ext) ? 'badge-' + f.ext : 'badge-default';
+    var thumb = f.thumb ? '<a href="' + f.link + '"><img class="thumb" src="' + f.thumb + '" alt="" /></a>'
+                        : '<a href="' + f.link + '"><div class="no-thumb"><span class="badge ' + extCls + '">' + (f.ext || '?') + '</span></div></a>';
+    var dirLink = '<a href="' + f.dir_link + '" style="color:var(--text-muted);font-size:12px;">' + f.dir_name + '/</a>';
+    return '<div class="card">' + thumb +
+      '<div class="label"><a href="' + f.link + '"><strong>' + f.name + '</strong></a></div>' +
+      '<div class="sub"><span class="badge ' + extCls + '">' + (f.ext || '?') + '</span></div>' +
+      '<div class="sub">' + dirLink + '</div>' +
+      '</div>';
+  }).join('');
+}
+
 /* Theme */
 function applyTheme(t) {
   var dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -396,5 +457,6 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
   if (r) r.checked = true;
 })();
 </script>
+<script id="subdir-files-data" type="application/json">{{ subdir_files_json }}</script>
 </body>
 </html>

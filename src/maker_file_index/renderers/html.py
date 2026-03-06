@@ -175,15 +175,52 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
         key=lambda x: -x["count"],
     )
 
-    # All files for cross-directory search
+    # All files + all directories for cross-directory search
     all_files = []
-    for d, bucket in grouped.items():
-        # Find the top-level parent dir for linking
+
+    # Add all directories (except root) as searchable items
+    all_known_dirs: set[Path] = set(d.resolve() for d in grouped.keys())
+    for d in list(all_known_dirs):
         cur = d
-        while cur.parent != root_dir and cur.parent != cur:
+        while cur != root_dir and cur != cur.parent:
+            try:
+                cur.relative_to(root_dir)
+            except ValueError:
+                break  # cur has gone above root_dir, stop
+            all_known_dirs.add(cur)
             cur = cur.parent
-        dir_page = page_path_for_dir(d) if d != root_dir else page_path_for_dir(d)
-        dir_link = os.path.relpath(dir_page, start=out_dir)
+
+    for d in sorted(all_known_dirs, key=lambda x: str(x).lower()):
+        if d == root_dir:
+            continue
+        try:
+            rel_path = str(d.relative_to(root_dir))
+        except ValueError:
+            continue  # skip dirs outside root_dir
+        dir_page = page_path_for_dir(d)
+        dir_link = url_path(os.path.relpath(dir_page, start=out_dir))
+        bucket = grouped.get(d, {})
+        counts = _format_ext_counts(bucket.get("ext_counts", {}))
+        first_thumb = ""
+        for r in bucket.get("records", []):
+            if r.thumbnail_path and Path(r.thumbnail_path).exists():
+                first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=out_dir))
+                break
+        all_files.append({
+            "name": d.name,
+            "path": rel_path,
+            "ext": "",
+            "is_dir": True,
+            "link": dir_link,
+            "thumb": first_thumb,
+            "dir_name": str(d.parent.relative_to(root_dir)) if d.parent != root_dir else "",
+            "dir_link": "",
+            "counts": counts,
+        })
+
+    for d, bucket in grouped.items():
+        dir_page = page_path_for_dir(d) if d != root_dir else None
+        dir_link = url_path(os.path.relpath(dir_page, start=out_dir)) if dir_page else ""
 
         for r in sorted(bucket.get("records", []), key=lambda r: r.path.name.lower()):
             ext = r.path.suffix.lower().lstrip(".")
@@ -208,11 +245,14 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
 
             all_files.append({
                 "name": r.path.name,
+                "path": "",
                 "ext": ext,
+                "is_dir": False,
                 "link": file_link,
                 "thumb": thumb,
                 "dir_name": d.name,
                 "dir_link": dir_link,
+                "counts": "",
             })
 
     # Build sidebar tree (all known dirs, relative to the landing page at out_dir)
@@ -319,7 +359,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 readme_link = ""
                 if readme_path is not None:
                     lines = readme_path.read_text(encoding="utf-8", errors="replace").splitlines()
-                    readme_title = lines[0].strip() if lines else ""
+                    readme_title = lines[0].lstrip("#").strip() if lines else ""
                     readme_link = url_path(os.path.relpath(readme_path, start=page_path.parent))
 
                 # First thumbnail in that directory (from any record there)
@@ -460,6 +500,58 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             key=lambda x: x["label"],
         )
 
+        # Files in all subdirectories (for deep search)
+        subdir_files = []
+        for sd in sorted(all_dirs, key=lambda x: str(x)):
+            if sd == d:
+                continue
+            try:
+                sd.relative_to(d)
+            except ValueError:
+                continue  # not a descendant of d
+            sd_bucket = grouped.get(sd, {})
+            sd_page = page_path_for_dir(sd)
+            dir_link = url_path(os.path.relpath(sd_page, start=page_path.parent))
+            for r in sd_bucket.get("records", []):
+                ext = r.path.suffix.lower().lstrip(".")
+                if ext in LIGHTBURN_EXTS:
+                    r_rel = r.path.parent.relative_to(root_dir)
+                    dp = (dirs_root / r_rel / r.path.stem).with_suffix(".html")
+                    flink = url_path(os.path.relpath(dp, start=page_path.parent))
+                else:
+                    flink = url_path(os.path.relpath(r.path, start=page_path.parent))
+                fthumb = ""
+                tp = r.thumbnail_path
+                if tp:
+                    tp = Path(tp)
+                    if str(tp) not in ("", ".", "./"):
+                        if not tp.is_absolute():
+                            tp = (r.path.parent / tp).resolve()
+                        if tp.exists() and tp.is_file():
+                            fthumb = url_path(os.path.relpath(tp, start=page_path.parent))
+                subdir_files.append({
+                    "name": r.path.name,
+                    "ext": ext,
+                    "link": flink,
+                    "thumb": fthumb,
+                    "dir_name": r.path.parent.name,
+                    "dir_link": dir_link,
+                })
+
+        # README for this directory
+        dir_readme_content = ""
+        dir_readme_title = ""
+        for cand in ("README.md", "README.txt"):
+            rp = d / cand
+            if rp.exists() and rp.is_file():
+                raw = rp.read_text(encoding="utf-8", errors="replace")
+                lines = raw.splitlines()
+                dir_readme_title = lines[0].lstrip("#").strip() if lines else ""
+                # Skip the first line (heading) to avoid repeating it below the <h1>
+                body_lines = lines[1:] if lines else []
+                dir_readme_content = "\n".join(body_lines).strip()
+                break
+
         rendered = template.render(
             directory=str(d),
             directory_name=str(d.name),
@@ -471,6 +563,9 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             home_link=home_link,
             breadcrumbs=breadcrumbs,
             page_types=page_types,
+            subdir_files_json=json.dumps(subdir_files),
+            readme_content=dir_readme_content,
+            readme_title=dir_readme_title,
         )
 
         page_path.write_text(rendered, encoding="utf-8")

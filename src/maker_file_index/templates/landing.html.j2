@@ -99,9 +99,10 @@
     .filter-sort-row input { flex: 1; min-width: 0; padding: 8px 14px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); }
     .filter-sort-row input:focus { border-color: var(--text-muted); }
     .sort-btns { display: flex; gap: 4px; flex-shrink: 0; }
-    .sort-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
+    .sort-btn { background: none; border: 2px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
     .sort-btn:hover { background: var(--surface-hover); }
-    .sort-btn.active { background: var(--surface-alt); font-weight: 600; color: var(--text); border-color: var(--text-muted); }
+    .sort-btn.active { background: #e8f0fe; border-color: #1a5cbe; color: #1a5cbe; font-weight: 700; }
+    [data-theme="dark"] .sort-btn.active { background: #1e3a5f; border-color: #7eb7ff; color: #7eb7ff; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
     .card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--surface); transition: box-shadow 0.15s; }
     .card:hover { box-shadow: 0 2px 12px var(--shadow); }
@@ -117,6 +118,7 @@
     /* File search results */
     #files-section { display: none; margin-bottom: 24px; }
     #files-section h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 12px; }
+    #dir-results-section h2, #file-results-section h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 12px; }
     .file-result { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: var(--text); }
     .file-result:hover { box-shadow: 0 2px 8px var(--shadow); }
     .file-result-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: contain; background: var(--surface-alt); border: 1px solid var(--border-light); flex-shrink: 0; }
@@ -201,13 +203,19 @@
       <input type="search" id="page-filter" placeholder="Filter directories and files…" oninput="filterCards(this.value)" />
       <div class="sort-btns">
         <button class="sort-btn" data-sort="recent" onclick="setSort('recent')">Recent</button>
-        <button class="sort-btn" data-sort="alpha"  onclick="setSort('alpha')">A–Z</button>
+        <button class="sort-btn" data-sort="alpha"  onclick="setSort('alpha')">Name</button>
       </div>
     </div>
 
     <div id="files-section">
-      <h2>Files <span id="files-count"></span></h2>
-      <div id="files-list"></div>
+      <div id="dir-results-section" style="display:none; margin-bottom:16px;">
+        <h2>Directories <span id="dirs-count"></span></h2>
+        <div id="dir-results-list"></div>
+      </div>
+      <div id="file-results-section" style="display:none;">
+        <h2>Files <span id="files-count"></span></h2>
+        <div id="files-list"></div>
+      </div>
     </div>
 
     <div class="grid" id="dir-grid">
@@ -235,14 +243,38 @@
 var activeType = null;
 var ALL_FILES = JSON.parse(document.getElementById('files-data').textContent);
 var SORT_KEY = 'mfi-sort';
-var currentSort = localStorage.getItem(SORT_KEY) || 'recent';
+var currentSort = 'recent';
+var currentDir = 'desc';
+(function() {
+  var saved = localStorage.getItem(SORT_KEY) || 'recent-desc';
+  var parts = saved.split('-');
+  currentSort = parts[0] === 'alpha' ? 'alpha' : 'recent';
+  currentDir = parts[1] === 'asc' ? 'asc' : (parts[1] === 'desc' ? 'desc' : (currentSort === 'recent' ? 'desc' : 'asc'));
+})();
+
+function sortLabel(key, active, dir) {
+  if (!active) return key === 'recent' ? 'Recent' : 'Name';
+  if (key === 'recent') return dir === 'desc' ? 'Recent \u25BC' : 'Recent \u25B2';
+  return dir === 'asc' ? 'A\u2013Z \u25B2' : 'Z\u2013A \u25BC';
+}
+
+function updateSortButtons() {
+  document.querySelectorAll('.sort-btn').forEach(function(b) {
+    var active = b.dataset.sort === currentSort;
+    b.classList.toggle('active', active);
+    b.textContent = sortLabel(b.dataset.sort, active, currentDir);
+  });
+}
 
 function setSort(key) {
-  currentSort = key;
-  localStorage.setItem(SORT_KEY, key);
-  document.querySelectorAll('.sort-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.sort === key);
-  });
+  if (currentSort === key) {
+    currentDir = currentDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort = key;
+    currentDir = key === 'recent' ? 'desc' : 'asc';
+  }
+  localStorage.setItem(SORT_KEY, currentSort + '-' + currentDir);
+  updateSortButtons();
   applySortToGrid(document.getElementById('dir-grid'));
 }
 
@@ -250,18 +282,19 @@ function applySortToGrid(grid) {
   if (!grid) return;
   var cards = Array.from(grid.querySelectorAll(':scope > .card'));
   cards.sort(function(a, b) {
+    var r;
     if (currentSort === 'alpha') {
-      return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+      r = (a.dataset.name || '').localeCompare(b.dataset.name || '');
+    } else {
+      r = parseInt(b.dataset.mtime || '0') - parseInt(a.dataset.mtime || '0');
     }
-    return parseInt(b.dataset.mtime || '0') - parseInt(a.dataset.mtime || '0');
+    return currentDir === 'asc' ? -r : r;
   });
   cards.forEach(function(c) { grid.appendChild(c); });
 }
 
 (function() {
-  document.querySelectorAll('.sort-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.sort === currentSort);
-  });
+  updateSortButtons();
   applySortToGrid(document.getElementById('dir-grid'));
 })();
 var BADGE_CLS = {lbrn2:'badge-lbrn2',lbrn:'badge-lbrn',stl:'badge-stl',scad:'badge-scad','3mf':'badge-3mf',svg:'badge-svg',dxf:'badge-dxf'};
@@ -278,32 +311,75 @@ function applyFilters() {
 
 function renderFileResults(q) {
   var section = document.getElementById('files-section');
-  var list = document.getElementById('files-list');
-  var countEl = document.getElementById('files-count');
   if (!q) { section.style.display = 'none'; return; }
-  var matches = ALL_FILES.filter(function(f) {
-    var typeMatch = !activeType || f.ext === activeType ||
-      (activeType === 'lightburn' && (f.ext === 'lbrn' || f.ext === 'lbrn2'));
+  section.style.display = 'block';
+
+  var typeFilter = activeType;
+  var dirs = ALL_FILES.filter(function(f) {
+    return f.is_dir && f.name.toLowerCase().includes(q) && !typeFilter;
+  });
+  var files = ALL_FILES.filter(function(f) {
+    if (f.is_dir) return false;
+    var typeMatch = !typeFilter || f.ext === typeFilter ||
+      (typeFilter === 'lightburn' && (f.ext === 'lbrn' || f.ext === 'lbrn2'));
     return f.name.toLowerCase().includes(q) && typeMatch;
   });
-  countEl.textContent = '(' + matches.length + ')';
-  if (matches.length === 0) {
-    list.innerHTML = '<div class="no-results">No files matched.</div>';
+
+  // Directories subsection
+  var dirSection = document.getElementById('dir-results-section');
+  var dirList = document.getElementById('dir-results-list');
+  var dirsCount = document.getElementById('dirs-count');
+  if (dirs.length > 0) {
+    dirsCount.textContent = '(' + dirs.length + ')';
+    dirList.innerHTML = dirs.slice(0, 50).map(function(d) {
+      var pathLabel = d.path && d.path !== d.name ? '<span style="color:var(--text-faint);font-size:11px;margin-left:6px;">' + escHtml(d.path) + '</span>' : '';
+      var meta = d.counts ? '<span style="color:var(--text-muted);font-size:12px;">' + escHtml(d.counts) + '</span>' : '';
+      var thumb = d.thumb
+        ? '<img class="file-result-thumb" src="' + d.thumb + '" alt="">'
+        : '<div class="file-result-no-thumb" style="font-size:22px;">&#128193;</div>';
+      return '<a class="file-result" href="' + d.link + '">'
+        + thumb
+        + '<div class="file-result-info">'
+        + '<div class="file-result-name">&#128193; ' + escHtml(d.name) + pathLabel + '</div>'
+        + '<div class="file-result-dir">' + meta + '</div>'
+        + '</div></a>';
+    }).join('');
+    dirSection.style.display = 'block';
   } else {
-    list.innerHTML = matches.slice(0, 100).map(function(f) {
+    dirSection.style.display = 'none';
+  }
+
+  // Files subsection
+  var fileSection = document.getElementById('file-results-section');
+  var fileList = document.getElementById('files-list');
+  var countEl = document.getElementById('files-count');
+  if (files.length > 0) {
+    countEl.textContent = '(' + files.length + ')';
+    fileList.innerHTML = files.slice(0, 100).map(function(f) {
       var cls = BADGE_CLS[f.ext] || 'badge-default';
       var thumb = f.thumb
         ? '<img class="file-result-thumb" src="' + f.thumb + '" alt="">'
         : '<div class="file-result-no-thumb"><span class="badge ' + cls + '">' + (f.ext || '?') + '</span></div>';
+      var dirLink = f.dir_link
+        ? '<a href="' + f.dir_link + '" onclick="event.stopPropagation()">' + escHtml(f.dir_name) + '</a>'
+        : escHtml(f.dir_name);
       return '<a class="file-result" href="' + f.link + '">'
         + thumb
         + '<div class="file-result-info">'
         + '<div class="file-result-name">' + escHtml(f.name) + '</div>'
-        + '<div class="file-result-dir"><a href="' + f.dir_link + '" onclick="event.stopPropagation()">' + escHtml(f.dir_name) + '</a></div>'
+        + '<div class="file-result-dir">' + dirLink + '</div>'
         + '</div></a>';
     }).join('');
+    fileSection.style.display = 'block';
+  } else {
+    fileSection.style.display = 'none';
   }
-  section.style.display = 'block';
+
+  if (dirs.length === 0 && files.length === 0) {
+    fileSection.style.display = 'block';
+    fileList.innerHTML = '<div class="no-results">No results matched.</div>';
+    countEl.textContent = '(0)';
+  }
 }
 
 function escHtml(s) {
