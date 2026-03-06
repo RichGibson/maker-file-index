@@ -70,6 +70,74 @@ def build_tree(
 
     return nodes
 
+def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
+    """
+    Writes a top-level index.html landing page at out_dir/index.html
+    showing all top-level directories with summary stats.
+    """
+    out_dir = out_dir.expanduser().resolve()
+    root_dir = root_dir.expanduser().resolve()
+
+    env = Environment(
+        loader=PackageLoader("maker_file_index", "templates"),
+        autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+    )
+    template = env.get_template("landing.html.j2")
+
+    grouped = group_by_directory(records)
+
+    # Top-level dirs only (immediate children of root_dir)
+    top_dirs = sorted(
+        [d for d in grouped if d.parent == root_dir],
+        key=lambda d: d.name.lower(),
+    )
+
+    dirs_root = out_dir / "dirs"
+
+    def page_path_for_dir(d: Path) -> Path:
+        rel = d.relative_to(root_dir)
+        return (dirs_root / rel / "index.html").resolve()
+
+    dir_cards = []
+    for d in top_dirs:
+        bucket = grouped[d]
+        child_page = page_path_for_dir(d)
+        link = os.path.relpath(child_page, start=out_dir)
+
+        first_thumb = ""
+        for r in bucket.get("records", []):
+            if r.thumbnail_path and Path(r.thumbnail_path).exists():
+                first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=out_dir))
+                break
+
+        dir_cards.append({
+            "name": d.name,
+            "link": link,
+            "first_thumb": first_thumb,
+            "counts": _format_ext_counts(bucket.get("ext_counts", {})),
+        })
+
+    # Summary stats
+    total_files = len(records)
+    total_dirs = len(grouped)
+    all_ext_counts: dict[str, int] = {}
+    for bucket in grouped.values():
+        for ext, n in bucket.get("ext_counts", {}).items():
+            all_ext_counts[ext] = all_ext_counts.get(ext, 0) + n
+    ext_counts = sorted(all_ext_counts.items(), key=lambda kv: (-kv[1], kv[0]))
+
+    rendered = template.render(
+        generated_at=_fmt_time(),
+        total_files=total_files,
+        total_dirs=total_dirs,
+        ext_counts=ext_counts,
+        dirs=dir_cards,
+    )
+
+    landing_path = out_dir / "index.html"
+    landing_path.write_text(rendered, encoding="utf-8")
+
+
 def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
     """
     Writes one HTML page per directory under:
