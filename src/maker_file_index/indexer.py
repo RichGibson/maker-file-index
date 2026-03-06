@@ -46,10 +46,11 @@ def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
         pattern = "**/*" if recursive else "*"
         files = [
             x for x in p.glob(pattern)
-            if x.is_file() and not x.name.endswith("_thumbnail.png")
+            if x.is_file()
+            and not x.name.endswith("_thumbnail.png")
+            and not x.name.startswith("._")
+            and "__MACOSX" not in x.parts
         ]
-        #files = [x for x in p.glob(pattern) if x.is_file()]
-        #files = [x for x in p.glob(pattern) if is_likely_lightburn_project(x)]
         return sorted({f.resolve() for f in files}, key=lambda x: str(x).lower())
 
     # glob pattern
@@ -57,7 +58,10 @@ def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
     files = [
         Path(m).expanduser()
         for m in matches
-        if Path(m).is_file() and not Path(m).name.endswith("_thumbnail.png")
+        if Path(m).is_file()
+        and not Path(m).name.endswith("_thumbnail.png")
+        and not Path(m).name.startswith("._")
+        and "__MACOSX" not in Path(m).parts
     ]
     #files = [Path(m).expanduser() for m in matches if Path(m).is_file()]
     #files = [f for f in files if is_likely_lightburn_project(f)]
