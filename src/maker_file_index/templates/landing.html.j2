@@ -17,6 +17,7 @@
       --border: #dddddd; --border-light: #eeeeee;
       --text: #222222; --text-dim: #444444; --text-muted: #888888; --text-faint: #aaaaaa; --text-faintest: #cccccc;
       --nav-bg: #ffffff; --nav-border: #dddddd;
+      --sidebar-bg: #fafafa;
       --input-bg: #ffffff; --input-border: #dddddd;
       --shadow: rgba(0,0,0,0.09);
     }
@@ -25,6 +26,7 @@
       --border: #3f3f46; --border-light: #2e2e33;
       --text: #f4f4f5; --text-dim: #d4d4d8; --text-muted: #a1a1aa; --text-faint: #71717a; --text-faintest: #52525b;
       --nav-bg: #1c1c1f; --nav-border: #3f3f46;
+      --sidebar-bg: #1e1e21;
       --input-bg: #27272a; --input-border: #3f3f46;
       --shadow: rgba(0,0,0,0.4);
     }
@@ -36,6 +38,9 @@
     .topnav { background: var(--nav-bg); border-bottom: 1px solid var(--nav-border); padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
     .topnav-brand { font-weight: 700; font-size: 15px; text-decoration: none; color: var(--text); }
     .topnav-right { position: relative; display: flex; align-items: center; gap: 10px; }
+    .sidebar-toggle { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--text-dim); }
+    .sidebar-toggle:hover { background: var(--surface-alt); }
+    .sidebar-toggle.active { background: var(--surface-alt); font-weight: 600; }
     .settings-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--text-dim); }
     .settings-btn:hover { background: var(--surface-alt); }
     .settings-panel { display: none; position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; box-shadow: 0 4px 20px var(--shadow); min-width: 180px; z-index: 200; }
@@ -44,10 +49,34 @@
     .theme-opt { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); padding: 5px 0; cursor: pointer; }
     .theme-opt input { cursor: pointer; accent-color: #0099ff; }
 
-    .hero { background: var(--surface); border-bottom: 1px solid var(--border); padding: 28px 32px 20px; }
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; align-items: start; padding: 20px 24px; }
+    .layout.sidebar-hidden { grid-template-columns: 1fr; }
+    .layout.sidebar-hidden .sidebar { display: none; }
+    .sidebar { position: sticky; top: 57px; max-height: calc(100vh - 73px); overflow: auto; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--sidebar-bg); }
+    .main { min-width: 0; }
+
+    /* Sidebar tree */
+    .tree { margin: 10px 0 4px 0; }
+    .tree ul { list-style: none; margin: 4px 0 0 0; padding-left: 18px; }
+    .tree li { margin: 4px 0; }
+    .tree a { text-decoration: none; color: var(--text-dim); }
+    .tree a:hover { text-decoration: underline; }
+    .tree .toggle { cursor: pointer; user-select: none; font-size: 18px; color: var(--text-dim); margin-right: 4px; display: inline-block; width: 22px; text-align: center; line-height: 1; vertical-align: middle; }
+    .tree .toggle:hover { color: #0099ff; }
+    .tree .spacer { display: inline-block; width: 26px; }
+    .tree li.collapsed > ul { display: none; }
+    .type-filters { margin-bottom: 12px; }
+    .type-filters .flabel { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .type-btn { display: block; width: 100%; text-align: left; background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; margin-bottom: 4px; font-size: 13px; cursor: pointer; color: var(--text-dim); }
+    .type-btn:hover { background: var(--surface-hover); }
+    .type-btn.active { background: #e8f0fe; border-color: #aac4f7; color: #1a5cbe; font-weight: 600; }
+    [data-theme="dark"] .type-btn.active { background: #1e3a5f; border-color: #2563ab; color: #7eb7ff; }
+
+    /* Hero / stats */
+    .hero { margin-bottom: 20px; }
     .hero h1 { margin: 0 0 4px; font-size: 1.8rem; }
     .hero .subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
-
     .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; align-items: center; }
     .stat { background: var(--surface-alt); border-radius: 8px; padding: 6px 14px; font-size: 13px; color: var(--text-dim); }
     .stat strong { color: var(--text); }
@@ -65,25 +94,24 @@
     .badge-dxf  { background: #e0f7f7; color: #0e6868; }
     .badge-default { background: #f0f0f0; color: #555; }
 
-    .content { padding: 24px 32px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    /* Directory grid */
+    .filter-bar { margin: 14px 0; }
+    .filter-bar input { width: 100%; padding: 8px 14px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); }
+    .filter-bar input:focus { border-color: var(--text-muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
     .card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--surface); transition: box-shadow 0.15s; }
     .card:hover { box-shadow: 0 2px 12px var(--shadow); }
-    .thumb { width: 100%; height: 180px; border-radius: 8px; object-fit: contain; background: var(--surface-alt); border: 1px solid var(--border-light); }
-    .no-thumb { width: 100%; height: 180px; border-radius: 8px; background: var(--surface-alt); border: 1px solid var(--border-light); display: flex; align-items: center; justify-content: center; color: var(--text-faintest); font-size: 28px; }
+    .card.hidden { display: none; }
+    .thumb { width: 100%; height: 170px; border-radius: 8px; object-fit: contain; background: var(--surface-alt); border: 1px solid var(--border-light); }
+    .no-thumb { width: 100%; height: 170px; border-radius: 8px; background: var(--surface-alt); border: 1px solid var(--border-light); display: flex; align-items: center; justify-content: center; color: var(--text-faintest); font-size: 28px; }
     .card-body { margin-top: 10px; }
     .card-title { font-size: 15px; font-weight: 600; }
     .card-title a { color: inherit; text-decoration: none; }
     .card-title a:hover { text-decoration: underline; }
     .card-meta { margin-top: 4px; font-size: 12px; color: var(--text-muted); }
 
-    .footer { text-align: center; color: var(--text-faint); font-size: 12px; padding: 24px; }
-    .filter-bar input { width: 100%; max-width: 480px; padding: 8px 14px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); }
-    .filter-bar input:focus { border-color: var(--text-muted); }
-    .card.hidden { display: none; }
-
     /* File search results */
-    #files-section { display: none; padding: 0 32px 24px; }
+    #files-section { display: none; margin-bottom: 24px; }
     #files-section h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 12px; }
     .file-result { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: var(--text); }
     .file-result:hover { box-shadow: 0 2px 8px var(--shadow); }
@@ -93,6 +121,8 @@
     .file-result-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .file-result-dir { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .no-results { color: var(--text-muted); font-size: 14px; padding: 8px 0; }
+
+    .footer { text-align: center; color: var(--text-faint); font-size: 12px; padding: 24px; }
   </style>
 </head>
 <body>
@@ -100,6 +130,7 @@
 <nav class="topnav">
   <a class="topnav-brand" href="index.html">Maker File Index</a>
   <div class="topnav-right">
+    <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()">&#9776; Sidebar</button>
     <button class="settings-btn" onclick="toggleSettings(event)">&#9881; Settings</button>
     <div class="settings-panel" id="settings-panel">
       <div class="settings-title">Appearance</div>
@@ -110,47 +141,83 @@
   </div>
 </nav>
 
-<div class="hero">
-  <h1>Maker File Index</h1>
-  <div class="subtitle">Generated: {{ generated_at }}</div>
-  <div class="stats">
-    <div class="stat">&#128194; <strong>{{ total_dirs }}</strong> directories</div>
-    <div class="stat">&#128196; <strong>{{ total_files }}</strong> files</div>
-    <button class="stat-btn active" id="btn-all" onclick="clearFilter()">All</button>
-    {% for t in type_stats %}
-    {%- set badge_cls = {"lightburn": "badge-lbrn2", "stl": "badge-stl", "openscad": "badge-scad", "3mf": "badge-3mf", "svg": "badge-svg", "dxf": "badge-dxf"}.get(t.key, "badge-default") %}
-    <button class="stat-btn" data-key="{{ t.key }}" onclick="toggleType(this)"><span class="badge {{ badge_cls }}">{{ t.label }}</span> <strong>{{ t.count }}</strong></button>
-    {% endfor %}
+{% macro render_tree(nodes) -%}
+<ul>
+  {%- for n in nodes %}
+  <li{% if n.children and n.children|length %} class="collapsed"{% endif %}>
+    {%- if n.children and n.children|length %}
+    <span class="toggle" onclick="toggleTree(this)">&#9654;</span>
+    {%- else %}
+    <span class="spacer"></span>
+    {%- endif %}
+    <a href="{{ n.link }}">{{ n.name }}</a>
+    {%- if n.children and n.children|length %}
+      {{ render_tree(n.children) }}
+    {%- endif %}
+  </li>
+  {%- endfor %}
+</ul>
+{%- endmacro %}
 
-  </div>
-  <div style="margin-top:14px;">
-    <div class="filter-bar">
-      <input type="search" placeholder="Filter directories…" oninput="filterCards(this.value)" />
+<div class="layout" id="layout">
+
+  <aside class="sidebar">
+    {% if page_types %}
+    <div class="type-filters">
+      <div class="flabel">File types</div>
+      {% for t in page_types %}
+      <button class="type-btn" data-key="{{ t.key }}" onclick="toggleSideType(this)">{{ t.label }}</button>
+      {% endfor %}
     </div>
-  </div>
-</div>
+    {% endif %}
 
-<div id="files-section">
-  <h2>Files <span id="files-count"></span></h2>
-  <div id="files-list"></div>
-</div>
+    {% if tree_data %}
+    <div class="tree">
+      {{ render_tree(tree_data) }}
+    </div>
+    {% endif %}
+  </aside>
 
-<div class="content">
-  <div class="grid" id="dir-grid">
-    {% for d in dirs %}
-    <div class="card" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}">
-      {% if d.first_thumb %}
-        <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
-      {% else %}
-        <a href="{{ d.link }}"><div class="no-thumb">&#128193;</div></a>
-      {% endif %}
-      <div class="card-body">
-        <div class="card-title"><a href="{{ d.link }}">{{ d.name }}</a></div>
-        <div class="card-meta">{{ d.counts }}</div>
+  <main class="main">
+    <div class="hero">
+      <h1>Maker File Index</h1>
+      <div class="subtitle">Generated: {{ generated_at }}</div>
+      <div class="stats">
+        <div class="stat">&#128194; <strong>{{ total_dirs }}</strong> directories</div>
+        <div class="stat">&#128196; <strong>{{ total_files }}</strong> files</div>
+        <button class="stat-btn active" id="btn-all" onclick="clearFilter()">All</button>
+        {% for t in type_stats %}
+        {%- set badge_cls = {"lightburn": "badge-lbrn2", "stl": "badge-stl", "openscad": "badge-scad", "3mf": "badge-3mf", "svg": "badge-svg", "dxf": "badge-dxf"}.get(t.key, "badge-default") %}
+        <button class="stat-btn" data-key="{{ t.key }}" onclick="toggleType(this)"><span class="badge {{ badge_cls }}">{{ t.label }}</span> <strong>{{ t.count }}</strong></button>
+        {% endfor %}
       </div>
     </div>
-    {% endfor %}
-  </div>
+
+    <div class="filter-bar">
+      <input type="search" id="page-filter" placeholder="Filter directories and files…" oninput="filterCards(this.value)" />
+    </div>
+
+    <div id="files-section">
+      <h2>Files <span id="files-count"></span></h2>
+      <div id="files-list"></div>
+    </div>
+
+    <div class="grid" id="dir-grid">
+      {% for d in dirs %}
+      <div class="card" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}">
+        {% if d.first_thumb %}
+          <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
+        {% else %}
+          <a href="{{ d.link }}"><div class="no-thumb">&#128193;</div></a>
+        {% endif %}
+        <div class="card-body">
+          <div class="card-title"><a href="{{ d.link }}">{{ d.name }}</a></div>
+          <div class="card-meta">{{ d.counts }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
 </div>
 
 <div class="footer">maker-file-index</div>
@@ -162,7 +229,7 @@ var ALL_FILES = JSON.parse(document.getElementById('files-data').textContent);
 var BADGE_CLS = {lbrn2:'badge-lbrn2',lbrn:'badge-lbrn',stl:'badge-stl',scad:'badge-scad','3mf':'badge-3mf',svg:'badge-svg',dxf:'badge-dxf'};
 
 function applyFilters() {
-  var q = (document.querySelector('.filter-bar input') ? document.querySelector('.filter-bar input').value : '').toLowerCase().trim();
+  var q = (document.getElementById('page-filter') ? document.getElementById('page-filter').value : '').toLowerCase().trim();
   document.querySelectorAll('#dir-grid .card').forEach(function(card) {
     var nameMatch = q === '' || card.dataset.name.includes(q);
     var typeMatch = !activeType || (card.dataset.labels || '').split(' ').includes(activeType);
@@ -177,7 +244,8 @@ function renderFileResults(q) {
   var countEl = document.getElementById('files-count');
   if (!q) { section.style.display = 'none'; return; }
   var matches = ALL_FILES.filter(function(f) {
-    var typeMatch = !activeType || f.ext === activeType || (activeType === 'lightburn' && (f.ext === 'lbrn' || f.ext === 'lbrn2'));
+    var typeMatch = !activeType || f.ext === activeType ||
+      (activeType === 'lightburn' && (f.ext === 'lbrn' || f.ext === 'lbrn2'));
     return f.name.toLowerCase().includes(q) && typeMatch;
   });
   countEl.textContent = '(' + matches.length + ')';
@@ -205,20 +273,64 @@ function escHtml(s) {
 }
 
 function filterCards(q) { applyFilters(); }
+
 function clearFilter() {
   activeType = null;
   document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById('btn-all').classList.add('active');
+  document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
   applyFilters();
 }
+
 function toggleType(btn) {
   var key = btn.dataset.key;
   if (activeType === key) { clearFilter(); return; }
   activeType = key;
   document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
+  document.querySelectorAll('.type-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.key === key);
+  });
   applyFilters();
 }
+
+function toggleSideType(btn) {
+  var key = btn.dataset.key;
+  if (activeType === key) { clearFilter(); return; }
+  activeType = key;
+  document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.stat-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.key === key);
+  });
+  applyFilters();
+}
+
+function toggleTree(btn) {
+  var li = btn.parentElement;
+  li.classList.toggle('collapsed');
+  btn.textContent = li.classList.contains('collapsed') ? '\u25B6' : '\u25BC';
+}
+
+/* Sidebar toggle */
+var SIDEBAR_KEY = 'mfi-sidebar-v2';
+function toggleSidebar() {
+  var layout = document.getElementById('layout');
+  var btn = document.getElementById('sidebar-toggle-btn');
+  layout.classList.toggle('sidebar-hidden');
+  var hidden = layout.classList.contains('sidebar-hidden');
+  localStorage.setItem(SIDEBAR_KEY, hidden ? '0' : '1');
+  if (btn) btn.classList.toggle('active', hidden);
+}
+(function() {
+  var saved = localStorage.getItem(SIDEBAR_KEY);
+  if (saved === null) { localStorage.setItem(SIDEBAR_KEY, '1'); saved = '1'; }
+  if (saved === '0') {
+    document.getElementById('layout').classList.add('sidebar-hidden');
+    var btn = document.getElementById('sidebar-toggle-btn');
+    if (btn) btn.classList.add('active');
+  }
+})();
 
 /* Theme */
 function applyTheme(t) {

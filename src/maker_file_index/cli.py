@@ -55,7 +55,6 @@ def main(argv: list[str] | None = None) -> int:
 
     print(str(out_path))
     print(f"/dirs/index.md")
-    print(f"/dirs/index.html")
     print(f"/index.html")
     return 0
 

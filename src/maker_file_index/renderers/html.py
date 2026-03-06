@@ -214,6 +214,33 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
                 "dir_link": dir_link,
             })
 
+    # Build sidebar tree (all known dirs, relative to the landing page at out_dir)
+    all_dirs: set[Path] = set(grouped.keys())
+    for d in list(all_dirs):
+        cur = d
+        while cur != root_dir and cur.parent != cur:
+            all_dirs.add(cur)
+            cur = cur.parent
+    all_dirs.add(root_dir)
+
+    tree_data = build_tree(
+        root_dir,
+        all_dirs,
+        page_path_for_dir=page_path_for_dir,
+        current_page_dir=out_dir,
+        current_dir=None,
+    )
+
+    # Sidebar type filters
+    label_set: dict[str, str] = {}
+    for ext in all_ext_counts:
+        label = EXT_TO_LABEL.get(ext, ext.upper())
+        label_set[label.lower()] = label
+    page_types = sorted(
+        [{"label": display, "key": key} for key, display in label_set.items()],
+        key=lambda x: x["label"],
+    )
+
     rendered = template.render(
         generated_at=_fmt_time(),
         total_files=total_files,
@@ -221,6 +248,8 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
         type_stats=type_stats,
         dirs=dir_cards,
         all_files_json=json.dumps(all_files),
+        tree_data=tree_data,
+        page_types=page_types,
     )
 
     landing_path = out_dir / "index.html"
@@ -265,6 +294,8 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
         return (dirs_root / rel / "index.html").resolve()
 
     for d in all_dirs:
+        if d == root_dir:
+            continue  # landing page (index.html) serves as home; no dirs/index.html needed
         page_path = page_path_for_dir(d)
         page_path.parent.mkdir(parents=True, exist_ok=True)
 
