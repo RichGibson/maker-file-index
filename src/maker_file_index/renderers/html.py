@@ -282,7 +282,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                     current_dir=d,
             )
 
-        home_link = os.path.relpath(page_path_for_dir(root_dir), start=page_path.parent)
+        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
 
         # Breadcrumbs: root → ... → d
         crumb_parts = []
