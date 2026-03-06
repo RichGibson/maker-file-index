@@ -153,6 +153,7 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
             "first_thumb": first_thumb,
             "counts": _format_ext_counts(bucket.get("ext_counts", {})),
             "labels": _exts_to_labels(dir_exts),
+            "mtime": int(_dir_mtime(d)),
         })
 
     # Summary stats
@@ -334,6 +335,9 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 counts = _format_ext_counts(child_ext_counts)
                 child_exts = list(child_ext_counts.keys())
 
+                child_mtimes = [r.path.stat().st_mtime for r in child_bucket.get("records", []) if r.path.exists()]
+                child_mtime = int(max(child_mtimes)) if child_mtimes else 0
+
                 subdirs.append(
                     {
                         "name": child.name,
@@ -343,6 +347,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                         "first_thumb": first_thumb,
                         "counts": counts,
                         "labels": _exts_to_labels(child_exts),
+                        "mtime": child_mtime,
                     }
                 )
 
@@ -386,6 +391,11 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
 
             ext = r.path.suffix.lower().lstrip(".")
 
+            try:
+                file_mtime = int(r.path.stat().st_mtime)
+            except OSError:
+                file_mtime = 0
+
             # For LightBurn files, link to a detail page instead of the raw file
             detail_link = ""
             if ext in LIGHTBURN_EXTS:
@@ -403,6 +413,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                     "labels": _exts_to_labels([ext]),
                     "notes": notes_snippet,
                     "error": r.error or "",
+                    "mtime": file_mtime,
                 }
             )
 

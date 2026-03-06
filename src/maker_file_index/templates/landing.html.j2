@@ -95,9 +95,13 @@
     .badge-default { background: #f0f0f0; color: #555; }
 
     /* Directory grid */
-    .filter-bar { margin: 14px 0; }
-    .filter-bar input { width: 100%; padding: 8px 14px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); }
-    .filter-bar input:focus { border-color: var(--text-muted); }
+    .filter-sort-row { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+    .filter-sort-row input { flex: 1; min-width: 0; padding: 8px 14px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); }
+    .filter-sort-row input:focus { border-color: var(--text-muted); }
+    .sort-btns { display: flex; gap: 4px; flex-shrink: 0; }
+    .sort-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--text-dim); white-space: nowrap; }
+    .sort-btn:hover { background: var(--surface-hover); }
+    .sort-btn.active { background: var(--surface-alt); font-weight: 600; color: var(--text); border-color: var(--text-muted); }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
     .card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--surface); transition: box-shadow 0.15s; }
     .card:hover { box-shadow: 0 2px 12px var(--shadow); }
@@ -193,8 +197,12 @@
       </div>
     </div>
 
-    <div class="filter-bar">
+    <div class="filter-sort-row">
       <input type="search" id="page-filter" placeholder="Filter directories and files…" oninput="filterCards(this.value)" />
+      <div class="sort-btns">
+        <button class="sort-btn" data-sort="recent" onclick="setSort('recent')">Recent</button>
+        <button class="sort-btn" data-sort="alpha"  onclick="setSort('alpha')">A–Z</button>
+      </div>
     </div>
 
     <div id="files-section">
@@ -204,7 +212,7 @@
 
     <div class="grid" id="dir-grid">
       {% for d in dirs %}
-      <div class="card" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}">
+      <div class="card" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}" data-mtime="{{ d.mtime }}">
         {% if d.first_thumb %}
           <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
         {% else %}
@@ -226,6 +234,36 @@
 <script>
 var activeType = null;
 var ALL_FILES = JSON.parse(document.getElementById('files-data').textContent);
+var SORT_KEY = 'mfi-sort';
+var currentSort = localStorage.getItem(SORT_KEY) || 'recent';
+
+function setSort(key) {
+  currentSort = key;
+  localStorage.setItem(SORT_KEY, key);
+  document.querySelectorAll('.sort-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.sort === key);
+  });
+  applySortToGrid(document.getElementById('dir-grid'));
+}
+
+function applySortToGrid(grid) {
+  if (!grid) return;
+  var cards = Array.from(grid.querySelectorAll(':scope > .card'));
+  cards.sort(function(a, b) {
+    if (currentSort === 'alpha') {
+      return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+    }
+    return parseInt(b.dataset.mtime || '0') - parseInt(a.dataset.mtime || '0');
+  });
+  cards.forEach(function(c) { grid.appendChild(c); });
+}
+
+(function() {
+  document.querySelectorAll('.sort-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.sort === currentSort);
+  });
+  applySortToGrid(document.getElementById('dir-grid'));
+})();
 var BADGE_CLS = {lbrn2:'badge-lbrn2',lbrn:'badge-lbrn',stl:'badge-stl',scad:'badge-scad','3mf':'badge-3mf',svg:'badge-svg',dxf:'badge-dxf'};
 
 function applyFilters() {
