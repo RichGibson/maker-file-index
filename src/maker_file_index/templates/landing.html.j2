@@ -85,7 +85,8 @@
     <div class="stat">&#128194; <strong>{{ total_dirs }}</strong> directories</div>
     <div class="stat">&#128196; <strong>{{ total_files }}</strong> files</div>
     {% for t in type_stats %}
-    <button class="stat-btn" data-key="{{ t.key }}" onclick="toggleType(this)">{{ t.label }} <strong>{{ t.count }}</strong></button>
+    {%- set badge_cls = {"lightburn": "badge-lbrn2", "stl": "badge-stl", "openscad": "badge-scad", "3mf": "badge-3mf", "svg": "badge-svg", "dxf": "badge-dxf"}.get(t.key, "badge-default") %}
+    <button class="stat-btn" data-key="{{ t.key }}" onclick="toggleType(this)"><span class="badge {{ badge_cls }}">{{ t.label }}</span> <strong>{{ t.count }}</strong></button>
     {% endfor %}
   </div>
   <div style="margin-top:14px;">
