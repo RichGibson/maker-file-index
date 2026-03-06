@@ -12,6 +12,30 @@ from maker_file_index.thumbnails import thumbnail_path_for, thumbnail_is_fresh, 
 
 LIKELY_EXTS = {".lbrn2", ".lbrn"}
 
+# LightBurn's standard 30-slot layer color palette (indexed by layer number)
+LIGHTBURN_PALETTE = [
+    "#000000", "#0000ff", "#ff0000", "#00cc00", "#ff9900", "#cc00cc",
+    "#00cccc", "#ffff00", "#ff7700", "#007700", "#0099ff", "#ff0099",
+    "#9900ff", "#996633", "#999999", "#003399", "#ff6600", "#006600",
+    "#6699ff", "#ff9999", "#cc99ff", "#cc9966", "#cccccc", "#336699",
+    "#ffcc00", "#009933", "#99ccff", "#ff66cc", "#cc66ff", "#ccaa77",
+]
+
+
+def _layer_color(index: int) -> str:
+    try:
+        return LIGHTBURN_PALETTE[int(index) % len(LIGHTBURN_PALETTE)]
+    except (ValueError, TypeError):
+        return "#888888"
+
+
+def _text_color_for(bg_hex: str) -> str:
+    """Return white or near-black depending on background luminance."""
+    r = int(bg_hex[1:3], 16)
+    g = int(bg_hex[3:5], 16)
+    b = int(bg_hex[5:7], 16)
+    return "#ffffff" if (0.299 * r + 0.587 * g + 0.114 * b) < 140 else "#222222"
+
 
 def is_likely_lightburn_project(path: Path) -> bool:
     return path.is_file() and path.suffix.lower() in LIKELY_EXTS
@@ -163,15 +187,51 @@ def extract_lightburn_details(path: Path) -> dict:
             "passes": data.get("numPasses", "1"),
         })
 
+    # Build layer map: index → name + color
+    layer_map: dict[int, dict] = {}
+    for cs in root.findall("CutSetting"):
+        data = {c.tag: c.attrib.get("Value", "") for c in cs}
+        try:
+            i = int(data.get("index", "0"))
+        except ValueError:
+            i = 0
+        color = _layer_color(i)
+        layer_map[i] = {
+            "name": data.get("name", f"C{i:02d}"),
+            "color": color,
+            "text_color": _text_color_for(color),
+        }
+
     shape_counts: dict[str, int] = {}
+    shape_layer_counts: dict[int, int] = {}
     text_strings: list[str] = []
     for s in root.findall("Shape"):
         t = s.attrib.get("Type", "Unknown")
         shape_counts[t] = shape_counts.get(t, 0) + 1
+        try:
+            cut_idx = int(s.attrib.get("CutIndex", "0"))
+        except ValueError:
+            cut_idx = 0
+        shape_layer_counts[cut_idx] = shape_layer_counts.get(cut_idx, 0) + 1
         if t == "Text":
             txt = s.attrib.get("Str", "").strip()
             if txt and txt not in text_strings:
                 text_strings.append(txt)
+
+    shapes_by_layer = []
+    for idx in sorted(shape_layer_counts):
+        info = layer_map.get(idx, {
+            "name": f"C{idx:02d}",
+            "color": _layer_color(idx),
+            "text_color": _text_color_for(_layer_color(idx)),
+        })
+        shapes_by_layer.append({
+            "layer_index": idx,
+            "layer_name": info["name"],
+            "color": info["color"],
+            "text_color": info["text_color"],
+            "count": shape_layer_counts[idx],
+        })
 
     return {
         "app_version": app_version,
@@ -180,6 +240,7 @@ def extract_lightburn_details(path: Path) -> dict:
         "notes": notes,
         "layers": layers,
         "shape_counts": shape_counts,
+        "shapes_by_layer": shapes_by_layer,
         "text_strings": text_strings[:20],
     }
 

@@ -47,7 +47,7 @@
     .type-Image { background: #ede0ff; color: #6b21a8; }
 
     .shapes-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .shape-chip { background: #f3f3f3; border-radius: 6px; padding: 4px 12px; font-size: 13px; }
+    .shape-chip { border-radius: 6px; padding: 4px 12px; font-size: 13px; }
     .shape-chip strong { margin-left: 4px; }
 
     .text-list { list-style: none; margin: 0; padding: 0; }
@@ -113,6 +113,17 @@
     </div>
     {% endif %}
 
+    {% if details.text_strings %}
+    <div class="section">
+      <h2>Notes</h2>
+      <ul class="text-list">
+        {% for t in details.text_strings %}
+        <li>{{ t }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
     {% if details.layers %}
     <div class="section">
       <h2>Laser layers</h2>
@@ -149,25 +160,14 @@
     </div>
     {% endif %}
 
-    {% if details.shape_counts %}
+    {% if details.shapes_by_layer %}
     <div class="section">
       <h2>Shapes</h2>
       <div class="shapes-list">
-        {% for shape_type, count in details.shape_counts.items() %}
-        <div class="shape-chip">{{ shape_type }}<strong>{{ count }}</strong></div>
+        {% for s in details.shapes_by_layer %}
+        <div class="shape-chip" style="background:{{ s.color }};color:{{ s.text_color }};">{{ s.layer_name }}<strong> ×{{ s.count }}</strong></div>
         {% endfor %}
       </div>
-    </div>
-    {% endif %}
-
-    {% if details.text_strings %}
-    <div class="section">
-      <h2>Text content</h2>
-      <ul class="text-list">
-        {% for t in details.text_strings %}
-        <li>{{ t }}</li>
-        {% endfor %}
-      </ul>
     </div>
     {% endif %}
 
