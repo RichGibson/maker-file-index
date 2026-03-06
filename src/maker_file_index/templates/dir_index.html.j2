@@ -87,9 +87,9 @@
     .tree a { text-decoration: none; color: var(--text-dim); }
     .tree a:hover { text-decoration: underline; }
     .tree .current { font-weight: 700; color: var(--text); }
-    .tree .toggle { cursor: pointer; user-select: none; font-size: 10px; color: var(--text-faint); margin-right: 3px; display: inline-block; width: 10px; }
-    .tree .toggle:hover { color: var(--text-muted); }
-    .tree .spacer { display: inline-block; width: 13px; }
+    .tree .toggle { cursor: pointer; user-select: none; font-size: 18px; color: var(--text-dim); margin-right: 4px; display: inline-block; width: 22px; text-align: center; line-height: 1; vertical-align: middle; }
+    .tree .toggle:hover { color: #0099ff; }
+    .tree .spacer { display: inline-block; width: 26px; }
     .tree li.collapsed > ul { display: none; }
 
     .layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; align-items: start; padding: 20px 24px; }
@@ -135,7 +135,7 @@
   {%- for n in nodes %}
   <li{% if n.children and n.children|length %} class="collapsed"{% endif %}>
     {%- if n.children and n.children|length %}
-    <span class="toggle" onclick="toggleTree(this)">▸</span>
+    <span class="toggle" onclick="toggleTree(this)">&#9654;</span>
     {%- else %}
     <span class="spacer"></span>
     {%- endif %}
@@ -286,7 +286,7 @@ function toggleType(btn) {
 function toggleTree(btn) {
   var li = btn.parentElement;
   li.classList.toggle('collapsed');
-  btn.textContent = li.classList.contains('collapsed') ? '▸' : '▾';
+  btn.textContent = li.classList.contains('collapsed') ? '\u25B6' : '\u25BC';
 }
 
 /* Auto-expand the path from root down to the current directory */
@@ -298,7 +298,7 @@ function toggleTree(btn) {
     if (el.tagName === 'LI') {
       el.classList.remove('collapsed');
       var toggle = el.querySelector(':scope > .toggle');
-      if (toggle) toggle.textContent = '▾';
+      if (toggle) toggle.textContent = '\u25BC';
     }
     el = el.parentElement;
   }
