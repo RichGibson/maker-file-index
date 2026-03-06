@@ -1,35 +1,42 @@
 # maker-file-index
 
-Index maker project files (starting with LightBurn) and generate a Markdown catalog with thumbnails and notes.
+Index maker project files and generate a Markdown and HTML catalog with thumbnails and notes.
 
 ## Features
 
-- Plugin-based architecture
-- LightBurn support (notes + thumbnails)
-- STL and SCAD detection (thumbnail TBD)
+- Plugin-based architecture — easy to extend with new file types
+- **LightBurn** (`.lbrn2`, `.lbrn`) — thumbnails and notes extraction
+- **STL** — thumbnail generation via numpy-stl + matplotlib
+- **SCAD** — thumbnail generation via OpenSCAD CLI (requires `openscad` installed)
+- **DXF, SVG, 3MF** — file detection and indexing
 - Recursive directory scanning
 - Markdown report output
+- HTML directory pages with thumbnail grid and sidebar tree navigation
+
+## Requirements
+
+- Python 3.9+
+- `numpy-stl`, `matplotlib` (installed automatically)
+- `openscad` (optional, for SCAD thumbnails — install separately)
 
 ## Quick start
 
 ```bash
-python -m pip install -e .
-maker-file-index <path> --debug-plugins
+pip install -e .
+maker-file-index <path>
 ```
 
 ## Usage
 
 ```bash
 maker-file-index TARGET [options]
+```
 
-Creates lightburn_notes.md in the current directory which contains all of the files, and dirs/index.md which is a
-link to the individual directories and their files. 
-
-dirs/index.md is where the future lies!
+Generates a Markdown report and per-directory HTML pages with thumbnails.
 
 ## Arguments
 
-### TARGET
+### `TARGET`
 
 File, directory, or glob to scan.
 
@@ -38,7 +45,7 @@ File, directory, or glob to scan.
 ### `-o, --output PATH`
 
 Output Markdown filename.
-Default: lightburn_notes.md
+Default: `lightburn_notes.md`
 
 ### `--no-recursive`
 
@@ -56,26 +63,26 @@ Show which plugin handles each file (useful for debugging).
 
 ### Extract Notes
 
-`lightburn_extract_notes <filename>`
+```bash
+lightburn-extract-notes <filename>
+```
 
 Reads a LightBurn file and extracts the notes.
 
 ### Extract Text
 
-`lightburn_extract_text <filename>`
+```bash
+lightburn-extract-text <filename>
+```
 
 Reads a LightBurn file and extracts the text.
-
 
 ## Status
 
 Working prototype.
 
 Currently supports:
-- LightBurn (.lbrn2) thumbnails and notes
-- STL and SCAD file detection
-
-Planned:
-- STL thumbnail generation
-- More file-type plugins
-- HTML/web viewer
+- LightBurn (`.lbrn2`) — thumbnails and notes
+- STL — thumbnail generation
+- SCAD — thumbnail generation (requires OpenSCAD)
+- DXF, SVG, 3MF — file detection
