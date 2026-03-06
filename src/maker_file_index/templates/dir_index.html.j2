@@ -212,13 +212,14 @@
       <div class="grid" id="file-grid">
         {% for f in file_cards %}
         <div class="card{% if f.error %} has-error{% endif %}" data-name="{{ f.display | lower }} {{ f.ext }}" data-labels="{{ f.labels }}">
+          {%- set card_link = f.detail_link if f.detail_link else f.path -%}
           {% if f.thumb %}
-            <a href="{{ f.path }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
+            <a href="{{ card_link }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
           {% else %}
-            <a href="{{ f.path }}"><div class="no-thumb">{{ ext_badge(f.ext) }}</div></a>
+            <a href="{{ card_link }}"><div class="no-thumb">{{ ext_badge(f.ext) }}</div></a>
           {% endif %}
           <div class="label">
-            <a href="{{ f.path }}"><strong>{{ f.display }}</strong></a>
+            <a href="{{ card_link }}"><strong>{{ f.display }}</strong></a>
           </div>
           <div class="sub">{{ ext_badge(f.ext) }}</div>
           {% if f.notes %}

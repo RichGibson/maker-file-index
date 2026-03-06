@@ -129,6 +129,61 @@ def extract_notes_and_thumbnail(path: Path) -> IndexRecord:
         )
 
 
+def extract_lightburn_details(path: Path) -> dict:
+    """
+    Extract rich metadata from a LightBurn file for a detail page.
+    Returns a dict with app_version, device_name, notes, layers, shape_counts, text_strings.
+    """
+    try:
+        tree = ET.parse(path)
+        root = tree.getroot()
+    except ET.ParseError:
+        return {}
+
+    app_version = root.attrib.get("AppVersion", "")
+    device_name = root.attrib.get("DeviceName", "")
+    material_height = root.attrib.get("MaterialHeight", "")
+
+    notes_el = root.find(".//Notes")
+    notes = ""
+    if notes_el is not None:
+        notes = (notes_el.attrib.get("Notes") or notes_el.text or "").strip()
+        notes = notes.replace("\r\n", "\n").replace("\r", "\n")
+
+    layers = []
+    for cs in root.findall("CutSetting"):
+        data = {c.tag: c.attrib.get("Value", "") for c in cs}
+        layers.append({
+            "index": data.get("index", "?"),
+            "name": data.get("name", ""),
+            "type": cs.attrib.get("type", ""),
+            "speed": data.get("speed", ""),
+            "min_power": data.get("minPower", ""),
+            "max_power": data.get("maxPower", ""),
+            "passes": data.get("numPasses", "1"),
+        })
+
+    shape_counts: dict[str, int] = {}
+    text_strings: list[str] = []
+    for s in root.findall("Shape"):
+        t = s.attrib.get("Type", "Unknown")
+        shape_counts[t] = shape_counts.get(t, 0) + 1
+        if t == "Text":
+            txt = s.attrib.get("Str", "").strip()
+            if txt and txt not in text_strings:
+                text_strings.append(txt)
+
+    return {
+        "app_version": app_version,
+        "device_name": device_name,
+        "material_height": material_height,
+        "notes": notes,
+        "layers": layers,
+        "shape_counts": shape_counts,
+        "text_strings": text_strings[:20],
+    }
+
+
 class LightBurnPlugin:
     name = "lightburn"
 

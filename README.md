@@ -24,6 +24,7 @@ Index maker project files and generate a Markdown and HTML catalog with thumbnai
 - Colored file type badges on every card
 - Notes snippet displayed on file cards
 - Error badge on cards where thumbnail generation failed
+- **LightBurn detail pages** — clicking a `.lbrn2`/`.lbrn` file opens a rich detail page showing: thumbnail, file metadata (machine, LightBurn version, material height, size, modified date), notes, laser layer table (speed, power, passes, type), shape summary, and embedded text content
 
 ## Requirements
 

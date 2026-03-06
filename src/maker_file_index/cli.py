@@ -6,7 +6,7 @@ from pathlib import Path
 
 from maker_file_index.indexer import scan
 from maker_file_index.renderers.markdown import write_markdown_report, write_directory_pages
-from maker_file_index.renderers.html import write_directory_pages_html, write_landing_page_html
+from maker_file_index.renderers.html import write_directory_pages_html, write_landing_page_html, write_lightburn_detail_pages_html
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -51,6 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     root_dir = Path(args.target).expanduser().resolve() if Path(args.target).expanduser().is_dir() else Path(args.target).expanduser().resolve().parent
     write_directory_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
     write_landing_page_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_lightburn_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
 
     print(str(out_path))
     print(f"/dirs/index.md")
