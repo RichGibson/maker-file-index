@@ -17,7 +17,8 @@ Index maker project files and generate a Markdown and HTML catalog with thumbnai
 - Landing page with all top-level directories, sorted newest first
 - Per-directory pages with thumbnail grid
 - Sidebar with full directory tree navigation, current page highlighted, scroll position preserved
-- File type filter buttons (LightBurn, STL, OpenSCAD, 3MF, SVG, DXF)
+- Clickable file type stat buttons on landing page (show count, filter on click)
+- File type filter buttons in sidebar on directory pages
 - Text search box to filter cards by name
 - Breadcrumb navigation
 - Colored file type badges on every card

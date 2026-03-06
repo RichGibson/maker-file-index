@@ -12,9 +12,12 @@
     .hero .subtitle { color: #666; font-size: 14px; margin-bottom: 16px; }
 
     /* Summary stats bar */
-    .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; align-items: center; }
     .stat { background: #f3f3f3; border-radius: 8px; padding: 6px 14px; font-size: 13px; color: #444; }
     .stat strong { color: #111; }
+    .stat-btn { background: #f3f3f3; border: 1px solid #ddd; border-radius: 8px; padding: 6px 14px; font-size: 13px; color: #444; cursor: pointer; }
+    .stat-btn:hover { background: #e8e8e8; }
+    .stat-btn.active { background: #e8f0fe; border-color: #aac4f7; color: #1a5cbe; font-weight: 600; }
 
     /* Badge colors (same as dir pages) */
     .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -71,9 +74,6 @@
     .filter-bar input { width: 100%; max-width: 480px; box-sizing: border-box; padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
     .filter-bar input:focus { border-color: #aaa; }
     .card.hidden { display: none; }
-    .type-btn { background: #f3f3f3; border: 1px solid #ddd; border-radius: 6px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: #444; white-space: nowrap; }
-    .type-btn:hover { background: #e8e8e8; }
-    .type-btn.active { background: #e8f0fe; border-color: #aac4f7; color: #1a5cbe; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -84,20 +84,14 @@
   <div class="stats">
     <div class="stat">&#128194; <strong>{{ total_dirs }}</strong> directories</div>
     <div class="stat">&#128196; <strong>{{ total_files }}</strong> files</div>
-    {% for ext, count in ext_counts %}
-    <div class="stat">
-      {% set cls = "badge-" ~ ext if ext in ["lbrn2","lbrn","stl","scad","3mf","svg","dxf"] else "badge-default" %}
-      <span class="badge {{ cls }}">{{ ext }}</span> <strong>{{ count }}</strong>
-    </div>
+    {% for t in type_stats %}
+    <button class="stat-btn" data-key="{{ t.key }}" onclick="toggleType(this)">{{ t.label }} <strong>{{ t.count }}</strong></button>
     {% endfor %}
   </div>
-  <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-    <div class="filter-bar" style="flex:1;min-width:200px;margin:0;">
+  <div style="margin-top:14px;">
+    <div class="filter-bar">
       <input type="search" placeholder="Filter directories…" oninput="filterCards(this.value)" />
     </div>
-    {% for t in all_types %}
-    <button class="type-btn" data-key="{{ t.key }}" onclick="toggleType(this)">{{ t.label }}</button>
-    {% endfor %}
   </div>
 </div>
 
@@ -142,7 +136,7 @@ function toggleType(btn) {
     btn.classList.remove('active');
   } else {
     activeType = key;
-    document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
   }
   applyFilters();

@@ -158,24 +158,24 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
     for bucket in grouped.values():
         for ext, n in bucket.get("ext_counts", {}).items():
             all_ext_counts[ext] = all_ext_counts.get(ext, 0) + n
-    ext_counts = sorted(all_ext_counts.items(), key=lambda kv: (-kv[1], kv[0]))
 
-    seen_labels: dict[str, str] = {}
-    for ext, _ in ext_counts:
+    # Merge per-ext counts into per-label counts (e.g. lbrn + lbrn2 → LightBurn)
+    label_counts: dict[str, int] = {}
+    for ext, count in all_ext_counts.items():
         label = EXT_TO_LABEL.get(ext, ext.upper())
-        seen_labels[label.lower()] = label
-    all_types = sorted(
-        [{"label": display, "key": key} for key, display in seen_labels.items()],
-        key=lambda x: x["label"],
+        label_counts[label] = label_counts.get(label, 0) + count
+    type_stats = sorted(
+        [{"label": label, "key": label.lower(), "count": count}
+         for label, count in label_counts.items()],
+        key=lambda x: -x["count"],
     )
 
     rendered = template.render(
         generated_at=_fmt_time(),
         total_files=total_files,
         total_dirs=total_dirs,
-        ext_counts=ext_counts,
+        type_stats=type_stats,
         dirs=dir_cards,
-        all_types=all_types,
     )
 
     landing_path = out_dir / "index.html"
