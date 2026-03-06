@@ -305,17 +305,18 @@ function toggleTree(btn) {
 })();
 
 /* Sidebar toggle */
+var SIDEBAR_KEY = 'mfi-sidebar-v2';
 function toggleSidebar() {
   var layout = document.querySelector('.layout');
   var btn = document.getElementById('sidebar-toggle-btn');
   layout.classList.toggle('sidebar-hidden');
   var hidden = layout.classList.contains('sidebar-hidden');
-  localStorage.setItem('mfi-sidebar', hidden ? '0' : '1');
+  localStorage.setItem(SIDEBAR_KEY, hidden ? '0' : '1');
   if (btn) btn.classList.toggle('active', hidden);
 }
 (function() {
-  var saved = localStorage.getItem('mfi-sidebar');
-  // Default: sidebar visible ('1'). Only hide if explicitly set to '0'.
+  var saved = localStorage.getItem(SIDEBAR_KEY);
+  if (saved === null) { localStorage.setItem(SIDEBAR_KEY, '1'); saved = '1'; }
   if (saved === '0') {
     document.querySelector('.layout').classList.add('sidebar-hidden');
     var btn = document.getElementById('sidebar-toggle-btn');
