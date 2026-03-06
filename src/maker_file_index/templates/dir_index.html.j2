@@ -82,6 +82,10 @@
     .tree a { text-decoration: none; }
     .tree a:hover { text-decoration: underline; }
     .tree .current { font-weight: 700; color: #000; }
+    .tree .toggle { cursor: pointer; user-select: none; font-size: 10px; color: #aaa; margin-right: 3px; display: inline-block; width: 10px; }
+    .tree .toggle:hover { color: #555; }
+    .tree .spacer { display: inline-block; width: 13px; }
+    .tree li.collapsed > ul { display: none; }
 
     .layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; align-items: start; }
     .sidebar { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; padding: 12px; border: 1px solid #ddd; border-radius: 10px; background: #fafafa; }
@@ -108,6 +112,11 @@
 <ul>
   {%- for n in nodes %}
   <li>
+    {%- if n.children and n.children|length %}
+    <span class="toggle" onclick="toggleTree(this)">▾</span>
+    {%- else %}
+    <span class="spacer"></span>
+    {%- endif %}
     {%- if n.is_current %}
     <span class="current">{{ n.name }}</span>
     {%- else %}
@@ -252,6 +261,12 @@ function toggleType(btn) {
     btn.classList.add('active');
   }
   applyFilters();
+}
+
+function toggleTree(btn) {
+  var li = btn.parentElement;
+  li.classList.toggle('collapsed');
+  btn.textContent = li.classList.contains('collapsed') ? '▸' : '▾';
 }
 
 // Persist sidebar scroll position across page navigations
