@@ -14,7 +14,10 @@ license = { text = "MIT" }
 authors = [
   { name = "Rich Gibson" }
 ]
-dependencies = []
+dependencies = [
+  "numpy-stl",
+  "matplotlib",
+]
 
 [project.scripts]
 maker-file-index = "maker_file_index.cli:main"
