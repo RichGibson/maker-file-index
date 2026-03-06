@@ -5,19 +5,30 @@ Index maker project files and generate a Markdown and HTML catalog with thumbnai
 ## Features
 
 - Plugin-based architecture — easy to extend with new file types
-- **LightBurn** (`.lbrn2`, `.lbrn`) — thumbnails and notes extraction
+- **LightBurn** (`.lbrn2`, `.lbrn`) — embedded thumbnail and notes extraction
 - **STL** — thumbnail generation via numpy-stl + matplotlib
-- **SCAD** — thumbnail generation via OpenSCAD CLI (requires `openscad` installed)
-- **DXF, SVG, 3MF** — file detection and indexing
-- Recursive directory scanning
-- Markdown report output
-- HTML directory pages with thumbnail grid and sidebar tree navigation
+- **OpenSCAD** (`.scad`) — thumbnail generation via OpenSCAD CLI
+- **3MF** — embedded preview image extraction
+- **SVG** — displayed directly as preview
+- **DXF** — file detection and indexing
+
+### HTML output
+
+- Landing page with all top-level directories, sorted newest first
+- Per-directory pages with thumbnail grid
+- Sidebar with full directory tree navigation and current page highlighted
+- File type filter buttons (LightBurn, STL, OpenSCAD, 3MF, SVG, DXF)
+- Text search box to filter cards by name
+- Breadcrumb navigation
+- Colored file type badges on every card
+- Notes snippet displayed on file cards
+- Error badge on cards where thumbnail generation failed
 
 ## Requirements
 
 - Python 3.9+
 - `numpy-stl`, `matplotlib` (installed automatically)
-- `openscad` (optional, for SCAD thumbnails — install separately)
+- `openscad` (optional, for OpenSCAD thumbnails — install separately)
 
 ## Quick start
 
@@ -26,13 +37,16 @@ pip install -e .
 maker-file-index <path>
 ```
 
+Generates:
+- `lightburn_notes.md` — Markdown report
+- `index.html` — landing page
+- `dirs/` — per-directory HTML pages
+
 ## Usage
 
 ```bash
 maker-file-index TARGET [options]
 ```
-
-Generates a Markdown report and per-directory HTML pages with thumbnails.
 
 ## Arguments
 
@@ -57,32 +71,22 @@ Make file paths in the report relative to this directory.
 
 ### `--debug-plugins`
 
-Show which plugin handles each file (useful for debugging).
+Show which plugin handles each file.
 
 ## Utilities
 
-### Extract Notes
-
 ```bash
-lightburn-extract-notes <filename>
+lightburn-extract-notes <filename>   # Extract notes from a LightBurn file
+lightburn-extract-text <filename>    # Extract text from a LightBurn file
 ```
 
-Reads a LightBurn file and extracts the notes.
+## Supported file types
 
-### Extract Text
-
-```bash
-lightburn-extract-text <filename>
-```
-
-Reads a LightBurn file and extracts the text.
-
-## Status
-
-Working prototype.
-
-Currently supports:
-- LightBurn (`.lbrn2`) — thumbnails and notes
-- STL — thumbnail generation
-- SCAD — thumbnail generation (requires OpenSCAD)
-- DXF, SVG, 3MF — file detection
+| Type | Extensions | Thumbnail |
+|------|-----------|-----------|
+| LightBurn | `.lbrn2`, `.lbrn` | Embedded in file |
+| STL | `.stl` | Rendered via numpy-stl + matplotlib |
+| OpenSCAD | `.scad` | Rendered via OpenSCAD CLI |
+| 3MF | `.3mf` | Extracted from zip archive |
+| SVG | `.svg` | Displayed directly |
+| DXF | `.dxf` | None |
