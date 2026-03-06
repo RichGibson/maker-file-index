@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from pathlib import Path
@@ -173,12 +174,53 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
         key=lambda x: -x["count"],
     )
 
+    # All files for cross-directory search
+    all_files = []
+    for d, bucket in grouped.items():
+        # Find the top-level parent dir for linking
+        cur = d
+        while cur.parent != root_dir and cur.parent != cur:
+            cur = cur.parent
+        dir_page = page_path_for_dir(d) if d != root_dir else page_path_for_dir(d)
+        dir_link = os.path.relpath(dir_page, start=out_dir)
+
+        for r in sorted(bucket.get("records", []), key=lambda r: r.path.name.lower()):
+            ext = r.path.suffix.lower().lstrip(".")
+
+            # Detail page link for LightBurn files, raw file otherwise
+            if ext in LIGHTBURN_EXTS:
+                rel = r.path.parent.relative_to(root_dir)
+                detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
+                file_link = url_path(os.path.relpath(detail_page, start=out_dir))
+            else:
+                file_link = url_path(os.path.relpath(r.path, start=out_dir))
+
+            thumb = ""
+            tp = r.thumbnail_path
+            if tp:
+                tp = Path(tp)
+                if str(tp) not in ("", ".", "./"):
+                    if not tp.is_absolute():
+                        tp = (r.path.parent / tp).resolve()
+                    if tp.exists() and tp.is_file():
+                        thumb = url_path(os.path.relpath(tp, start=out_dir))
+
+            all_files.append({
+                "name": r.path.name,
+                "ext": ext,
+                "link": file_link,
+                "thumb": thumb,
+                "dir_name": d.name,
+                "dir_link": dir_link,
+            })
+
     rendered = template.render(
         generated_at=_fmt_time(),
         total_files=total_files,
         total_dirs=total_dirs,
         type_stats=type_stats,
         dirs=dir_cards,
+        all_files_json=json.dumps(all_files),
     )
 
     landing_path = out_dir / "index.html"

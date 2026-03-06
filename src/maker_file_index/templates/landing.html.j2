@@ -81,6 +81,18 @@
     .filter-bar input { width: 100%; max-width: 480px; padding: 8px 14px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text); }
     .filter-bar input:focus { border-color: var(--text-muted); }
     .card.hidden { display: none; }
+
+    /* File search results */
+    #files-section { display: none; padding: 0 32px 24px; }
+    #files-section h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 12px; }
+    .file-result { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; text-decoration: none; color: var(--text); }
+    .file-result:hover { box-shadow: 0 2px 8px var(--shadow); }
+    .file-result-thumb { width: 48px; height: 48px; border-radius: 6px; object-fit: contain; background: var(--surface-alt); border: 1px solid var(--border-light); flex-shrink: 0; }
+    .file-result-no-thumb { width: 48px; height: 48px; border-radius: 6px; background: var(--surface-alt); border: 1px solid var(--border-light); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .file-result-info { min-width: 0; }
+    .file-result-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-result-dir { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .no-results { color: var(--text-muted); font-size: 14px; padding: 8px 0; }
   </style>
 </head>
 <body>
@@ -118,6 +130,11 @@
   </div>
 </div>
 
+<div id="files-section">
+  <h2>Files <span id="files-count"></span></h2>
+  <div id="files-list"></div>
+</div>
+
 <div class="content">
   <div class="grid" id="dir-grid">
     {% for d in dirs %}
@@ -138,8 +155,11 @@
 
 <div class="footer">maker-file-index</div>
 
+<script id="files-data" type="application/json">{{ all_files_json }}</script>
 <script>
 var activeType = null;
+var ALL_FILES = JSON.parse(document.getElementById('files-data').textContent);
+var BADGE_CLS = {lbrn2:'badge-lbrn2',lbrn:'badge-lbrn',stl:'badge-stl',scad:'badge-scad','3mf':'badge-3mf',svg:'badge-svg',dxf:'badge-dxf'};
 
 function applyFilters() {
   var q = (document.querySelector('.filter-bar input') ? document.querySelector('.filter-bar input').value : '').toLowerCase().trim();
@@ -148,7 +168,42 @@ function applyFilters() {
     var typeMatch = !activeType || (card.dataset.labels || '').split(' ').includes(activeType);
     card.classList.toggle('hidden', !nameMatch || !typeMatch);
   });
+  renderFileResults(q);
 }
+
+function renderFileResults(q) {
+  var section = document.getElementById('files-section');
+  var list = document.getElementById('files-list');
+  var countEl = document.getElementById('files-count');
+  if (!q) { section.style.display = 'none'; return; }
+  var matches = ALL_FILES.filter(function(f) {
+    var typeMatch = !activeType || f.ext === activeType || (activeType === 'lightburn' && (f.ext === 'lbrn' || f.ext === 'lbrn2'));
+    return f.name.toLowerCase().includes(q) && typeMatch;
+  });
+  countEl.textContent = '(' + matches.length + ')';
+  if (matches.length === 0) {
+    list.innerHTML = '<div class="no-results">No files matched.</div>';
+  } else {
+    list.innerHTML = matches.slice(0, 100).map(function(f) {
+      var cls = BADGE_CLS[f.ext] || 'badge-default';
+      var thumb = f.thumb
+        ? '<img class="file-result-thumb" src="' + f.thumb + '" alt="">'
+        : '<div class="file-result-no-thumb"><span class="badge ' + cls + '">' + (f.ext || '?') + '</span></div>';
+      return '<a class="file-result" href="' + f.link + '">'
+        + thumb
+        + '<div class="file-result-info">'
+        + '<div class="file-result-name">' + escHtml(f.name) + '</div>'
+        + '<div class="file-result-dir"><a href="' + f.dir_link + '" onclick="event.stopPropagation()">' + escHtml(f.dir_name) + '</a></div>'
+        + '</div></a>';
+    }).join('');
+  }
+  section.style.display = 'block';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function filterCards(q) { applyFilters(); }
 function clearFilter() {
   activeType = null;
