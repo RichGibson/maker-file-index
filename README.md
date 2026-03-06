@@ -27,7 +27,7 @@ Index maker project files and generate a Markdown and HTML catalog with thumbnai
 ## Requirements
 
 - Python 3.9+
-- `numpy-stl`, `matplotlib` (installed automatically)
+- `numpy-stl`, `matplotlib`, `ezdxf` (installed automatically)
 - `openscad` (optional, for OpenSCAD thumbnails — install separately)
 
 ## Quick start
@@ -89,4 +89,4 @@ lightburn-extract-text <filename>    # Extract text from a LightBurn file
 | OpenSCAD | `.scad` | Rendered via OpenSCAD CLI |
 | 3MF | `.3mf` | Extracted from zip archive |
 | SVG | `.svg` | Displayed directly |
-| DXF | `.dxf` | None |
+| DXF | `.dxf` | Rendered via ezdxf + matplotlib |
