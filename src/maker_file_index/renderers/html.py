@@ -27,6 +27,27 @@ def _fmt_time() -> str:
     )
 
 
+EXT_TO_LABEL = {
+    "lbrn2": "LightBurn",
+    "lbrn":  "LightBurn",
+    "stl":   "STL",
+    "scad":  "OpenSCAD",
+    "3mf":   "3MF",
+    "svg":   "SVG",
+    "dxf":   "DXF",
+}
+
+
+def _exts_to_labels(exts: list[str]) -> str:
+    """Return space-separated unique lowercase labels for a list of extensions."""
+    seen = []
+    for ext in exts:
+        label = EXT_TO_LABEL.get(ext, ext.upper()).lower()
+        if label not in seen:
+            seen.append(label)
+    return " ".join(seen)
+
+
 def _format_ext_counts(ext_counts: dict) -> str:
     if not ext_counts:
         return ""
@@ -121,11 +142,13 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
                 first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=out_dir))
                 break
 
+        dir_exts = list(bucket.get("ext_counts", {}).keys())
         dir_cards.append({
             "name": d.name,
             "link": link,
             "first_thumb": first_thumb,
             "counts": _format_ext_counts(bucket.get("ext_counts", {})),
+            "labels": _exts_to_labels(dir_exts),
         })
 
     # Summary stats
@@ -137,12 +160,22 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
             all_ext_counts[ext] = all_ext_counts.get(ext, 0) + n
     ext_counts = sorted(all_ext_counts.items(), key=lambda kv: (-kv[1], kv[0]))
 
+    seen_labels: dict[str, str] = {}
+    for ext, _ in ext_counts:
+        label = EXT_TO_LABEL.get(ext, ext.upper())
+        seen_labels[label.lower()] = label
+    all_types = sorted(
+        [{"label": display, "key": key} for key, display in seen_labels.items()],
+        key=lambda x: x["label"],
+    )
+
     rendered = template.render(
         generated_at=_fmt_time(),
         total_files=total_files,
         total_dirs=total_dirs,
         ext_counts=ext_counts,
         dirs=dir_cards,
+        all_types=all_types,
     )
 
     landing_path = out_dir / "index.html"
@@ -221,7 +254,9 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                         first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=page_path.parent))
                         break
 
-                counts = _format_ext_counts(child_bucket.get("ext_counts", {}))
+                child_ext_counts = child_bucket.get("ext_counts", {})
+                counts = _format_ext_counts(child_ext_counts)
+                child_exts = list(child_ext_counts.keys())
 
                 subdirs.append(
                     {
@@ -231,6 +266,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                         "readme_link": readme_link,
                         "first_thumb": first_thumb,
                         "counts": counts,
+                        "labels": _exts_to_labels(child_exts),
                     }
                 )
 
@@ -272,12 +308,14 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if len(lines) > 1:
                     notes_snippet = " ".join(lines[1:])[:120]
 
+            ext = r.path.suffix.lower().lstrip(".")
             file_cards.append(
                 {
                     "path": url_path(os.path.relpath(r.path, start=page_path.parent)),
                     "thumb": thumb,
                     "display": display,
-                    "ext": r.path.suffix.lower().lstrip("."),
+                    "ext": ext,
+                    "labels": _exts_to_labels([ext]),
                     "notes": notes_snippet,
                     "error": r.error or "",
                 }
@@ -314,6 +352,20 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 "is_current": part == d,
             })
 
+        # Unique type labels present on this page (files + subdirs)
+        seen_labels: dict[str, str] = {}
+        for fc in file_cards:
+            label = EXT_TO_LABEL.get(fc["ext"], fc["ext"].upper())
+            seen_labels[label.lower()] = label
+        for sd in subdirs:
+            for lbl in sd["labels"].split():
+                display = EXT_TO_LABEL.get(lbl, lbl.upper())
+                seen_labels[lbl] = display
+        page_types = sorted(
+            [{"label": display, "key": key} for key, display in seen_labels.items()],
+            key=lambda x: x["label"],
+        )
+
         rendered = template.render(
             directory=str(d),
             directory_name=str(d.name),
@@ -324,6 +376,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             show_tree=show_tree,
             home_link=home_link,
             breadcrumbs=breadcrumbs,
+            page_types=page_types,
         )
 
         page_path.write_text(rendered, encoding="utf-8")

@@ -71,6 +71,9 @@
     .filter-bar input { width: 100%; max-width: 480px; box-sizing: border-box; padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
     .filter-bar input:focus { border-color: #aaa; }
     .card.hidden { display: none; }
+    .type-btn { background: #f3f3f3; border: 1px solid #ddd; border-radius: 6px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: #444; white-space: nowrap; }
+    .type-btn:hover { background: #e8e8e8; }
+    .type-btn.active { background: #e8f0fe; border-color: #aac4f7; color: #1a5cbe; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -88,15 +91,20 @@
     </div>
     {% endfor %}
   </div>
-  <div class="filter-bar" style="margin-top:14px;">
-    <input type="search" placeholder="Filter directories…" oninput="filterCards(this.value)" />
+  <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <div class="filter-bar" style="flex:1;min-width:200px;margin:0;">
+      <input type="search" placeholder="Filter directories…" oninput="filterCards(this.value)" />
+    </div>
+    {% for t in all_types %}
+    <button class="type-btn" data-key="{{ t.key }}" onclick="toggleType(this)">{{ t.label }}</button>
+    {% endfor %}
   </div>
 </div>
 
 <div class="content">
   <div class="grid" id="dir-grid">
     {% for d in dirs %}
-    <div class="card" data-name="{{ d.name | lower }}">
+    <div class="card" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}">
       {% if d.first_thumb %}
         <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
       {% else %}
@@ -114,11 +122,30 @@
 <div class="footer">maker-file-index</div>
 
 <script>
-function filterCards(q) {
-  q = q.toLowerCase().trim();
-  document.querySelectorAll('.grid .card').forEach(function(card) {
-    card.classList.toggle('hidden', q !== '' && !card.dataset.name.includes(q));
+var activeType = null;
+
+function applyFilters() {
+  var q = (document.querySelector('.filter-bar input') ? document.querySelector('.filter-bar input').value : '').toLowerCase().trim();
+  document.querySelectorAll('#dir-grid .card').forEach(function(card) {
+    var nameMatch = q === '' || card.dataset.name.includes(q);
+    var typeMatch = !activeType || (card.dataset.labels || '').split(' ').includes(activeType);
+    card.classList.toggle('hidden', !nameMatch || !typeMatch);
   });
+}
+
+function filterCards(q) { applyFilters(); }
+
+function toggleType(btn) {
+  var key = btn.dataset.key;
+  if (activeType === key) {
+    activeType = null;
+    btn.classList.remove('active');
+  } else {
+    activeType = key;
+    document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+  applyFilters();
 }
 </script>
 </body>
