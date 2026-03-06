@@ -82,6 +82,26 @@ lightburn-extract-notes <filename>   # Extract notes from a LightBurn file
 lightburn-extract-text <filename>    # Extract text from a LightBurn file
 ```
 
+### extract_thumbnail
+
+Standalone script for extracting and debugging thumbnails from LightBurn files.
+
+```bash
+python scripts/extract_thumbnail.py file.lbrn2
+python scripts/extract_thumbnail.py file.lbrn2 -o thumb.png
+python scripts/extract_thumbnail.py file.lbrn2 --debug
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `file` | Path to `.lbrn2` or `.lbrn` file |
+| `-o, --output PATH` | Output path (default: `<stem>_thumbnail.<ext>` next to input) |
+| `--debug` | Show XML structure, where base64 data was found, decoded size, and detected image format |
+
+The `--debug` flag is useful when a file has a `Thumbnail Source` in the XML but no image is being generated — it shows exactly what was found and where extraction failed.
+
 ## Supported file types
 
 | Type | Extensions | Thumbnail |
