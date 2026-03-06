@@ -10,13 +10,13 @@ Index maker project files and generate a Markdown and HTML catalog with thumbnai
 - **OpenSCAD** (`.scad`) — thumbnail generation via OpenSCAD CLI
 - **3MF** — embedded preview image extraction
 - **SVG** — displayed directly as preview
-- **DXF** — file detection and indexing
+- **DXF** — thumbnail generation via ezdxf + matplotlib
 
 ### HTML output
 
 - Landing page with all top-level directories, sorted newest first
 - Per-directory pages with thumbnail grid
-- Sidebar with full directory tree navigation and current page highlighted
+- Sidebar with full directory tree navigation, current page highlighted, scroll position preserved
 - File type filter buttons (LightBurn, STL, OpenSCAD, 3MF, SVG, DXF)
 - Text search box to filter cards by name
 - Breadcrumb navigation
