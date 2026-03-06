@@ -388,13 +388,11 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
 
         home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
 
-        # Breadcrumbs: root → ... → d
+        # Breadcrumbs: children of root → ... → d (root itself omitted; Home link covers it)
         crumb_parts = []
         cur = d
-        while True:
+        while cur != root_dir and cur.parent != cur:
             crumb_parts.append(cur)
-            if cur == root_dir or cur.parent == cur:
-                break
             cur = cur.parent
         crumb_parts.reverse()
         breadcrumbs = []
@@ -489,19 +487,17 @@ def write_lightburn_detail_pages_html(records, out_dir: Path, root_dir: Path) ->
         # Home link
         home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
 
-        # Breadcrumbs: root → ... → dir → filename
+        # Breadcrumbs: children of root → ... → dir → filename (root omitted)
         crumb_parts = []
         cur = r.path.parent
-        while True:
+        while cur != root_dir and cur.parent != cur:
             crumb_parts.append(cur)
-            if cur == root_dir or cur.parent == cur:
-                break
             cur = cur.parent
         crumb_parts.reverse()
 
         breadcrumbs = []
         for part in crumb_parts:
-            part_rel = part.relative_to(root_dir) if part != root_dir else Path(".")
+            part_rel = part.relative_to(root_dir)
             part_page = (dirs_root / part_rel / "index.html").resolve()
             breadcrumbs.append({
                 "name": part.name,
