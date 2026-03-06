@@ -121,9 +121,10 @@ def extract_notes_and_thumbnail(path: Path) -> IndexRecord:
 
         thumb_path = Path("")
         try:
-            # thumbnail is optional; if missing, we keep blank
-            #thumb_path = extract_thumbnail(path, overwrite=overwrite_thumbnail)
-            thumb_path=thumbnail_path_for(path)
+            expected = thumbnail_path_for(path)
+            if not thumbnail_is_fresh(path, expected):
+                extract_thumbnail(path, output_path=expected)
+            thumb_path = expected
         except Exception:
             thumb_path = Path("")
 
