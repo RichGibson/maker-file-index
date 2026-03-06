@@ -187,12 +187,19 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if first_line:
                     display = first_line
 
+            notes_snippet = ""
+            if r.notes:
+                lines = [l.strip() for l in r.notes.splitlines() if l.strip()]
+                if len(lines) > 1:
+                    notes_snippet = " ".join(lines[1:])[:120]
+
             file_cards.append(
                 {
                     "path": url_path(os.path.relpath(r.path, start=page_path.parent)),
                     "thumb": thumb,
                     "display": display,
                     "ext": r.path.suffix.lower().lstrip("."),
+                    "notes": notes_snippet,
                 }
             )
 
@@ -209,6 +216,24 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
 
         home_link = os.path.relpath(page_path_for_dir(root_dir), start=page_path.parent)
 
+        # Breadcrumbs: root → ... → d
+        crumb_parts = []
+        cur = d
+        while True:
+            crumb_parts.append(cur)
+            if cur == root_dir or cur.parent == cur:
+                break
+            cur = cur.parent
+        crumb_parts.reverse()
+        breadcrumbs = []
+        for part in crumb_parts:
+            part_page = page_path_for_dir(part)
+            breadcrumbs.append({
+                "name": part.name,
+                "link": os.path.relpath(part_page, start=page_path.parent),
+                "is_current": part == d,
+            })
+
         rendered = template.render(
             directory=str(d),
             directory_name=str(d.name),
@@ -217,7 +242,8 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             file_cards=file_cards,
             tree_data=tree_data,
             show_tree=show_tree,
-            home_link=home_link
+            home_link=home_link,
+            breadcrumbs=breadcrumbs,
         )
 
         page_path.write_text(rendered, encoding="utf-8")
