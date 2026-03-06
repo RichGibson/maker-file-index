@@ -68,7 +68,6 @@
     .card-meta { margin-top: 4px; font-size: 12px; color: #888; }
 
     .footer { text-align: center; color: #aaa; font-size: 12px; padding: 24px; }
-    .filter-bar { margin: 0 32px 16px; }
     .filter-bar input { width: 100%; max-width: 480px; box-sizing: border-box; padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
     .filter-bar input:focus { border-color: #aaa; }
     .card.hidden { display: none; }
@@ -89,10 +88,9 @@
     </div>
     {% endfor %}
   </div>
-</div>
-
-<div class="filter-bar">
-  <input type="search" id="dir-filter" placeholder="Filter directories…" oninput="filterCards(this.value)" />
+  <div class="filter-bar" style="margin-top:14px;">
+    <input type="search" placeholder="Filter directories…" oninput="filterCards(this.value)" />
+  </div>
 </div>
 
 <div class="content">
