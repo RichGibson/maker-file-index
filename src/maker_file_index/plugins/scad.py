@@ -54,7 +54,9 @@ class SCADPlugin:
         thumb_path = thumbnail_path_for(path)
         error = ""
         if not thumb_path.exists():
-            print(f"Creating thumbnail for {path.parent.name}/{path.name}")
+            scan_root = getattr(self, "scan_root", None)
+            rel = path.relative_to(scan_root) if scan_root else Path(path.parent.name) / path.name
+            print(f"Creating thumbnail for {rel}")
             error = render_scad_thumbnail(path, thumb_path)
 
         return IndexRecord(

@@ -4,8 +4,6 @@ import glob
 from datetime import datetime
 from pathlib import Path
 import os
-import pdb
-
 from maker_file_index.plugins.loader import load_plugins
 from maker_file_index.plugins.base import IndexRecord  # or whatever you named your generic record
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -83,8 +81,13 @@ def scan(target: str, recursive: bool = True, debug_plugins: bool = False) -> li
     no_plugin_count = Counter()
     plugin_count = Counter()
     records: list[IndexRecord] = []
+
+    t = Path(target).expanduser()
+    scan_root = t.resolve() if t.is_dir() else t.resolve().parent
+
     for p in files:
         for plugin in plugins:
+            plugin.scan_root = scan_root
             if plugin.can_handle(p):
                 if debug_plugins:
                     print(f"[plugin:{plugin.name}] {p}")

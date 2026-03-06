@@ -86,10 +86,21 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
 
     grouped = group_by_directory(records)
 
-    # Top-level dirs only (immediate children of root_dir)
+    # Top-level dirs only (immediate children of root_dir), newest first
+    def _dir_mtime(d: Path) -> float:
+        recs = grouped[d].get("records", [])
+        mtimes = []
+        for r in recs:
+            try:
+                mtimes.append(r.path.stat().st_mtime)
+            except OSError:
+                pass
+        return max(mtimes) if mtimes else 0.0
+
     top_dirs = sorted(
         [d for d in grouped if d.parent == root_dir],
-        key=lambda d: d.name.lower(),
+        key=_dir_mtime,
+        reverse=True,
     )
 
     dirs_root = out_dir / "dirs"
