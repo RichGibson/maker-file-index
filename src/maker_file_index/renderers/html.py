@@ -4,11 +4,10 @@ import os
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
-import pdb
-
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from maker_file_index.indexer import group_by_directory
+
 
 def url_path(p: str) -> str:
     """
@@ -41,10 +40,12 @@ def build_tree(
     *,
     page_path_for_dir,
     current_page_dir: Path,
+    current_dir: Path | None = None,
 ) -> list[dict]:
     """
     Build a nested directory tree starting at base.
     Each node includes a link to that directory's index.html relative to current_page_dir.
+    Nodes matching current_dir are marked with is_current=True.
     """
     children = [d for d in dirs if d.parent == base and d != base]
     children = sorted(children, key=lambda x: x.name.lower())
@@ -56,11 +57,13 @@ def build_tree(
             {
                 "name": c.name,
                 "link": link,
+                "is_current": c == current_dir,
                 "children": build_tree(
                     c,
                     dirs,
                     page_path_for_dir=page_path_for_dir,
                     current_page_dir=current_page_dir,
+                    current_dir=current_dir,
                 ),
             }
         )
@@ -194,14 +197,14 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             )
 
         show_tree= True
-        # show_tree= (d != root_dir) 
         tree_data=[]
         if show_tree:
             tree_data = build_tree(
-                    d,
+                    root_dir,
                     set(all_dirs),
                     page_path_for_dir=page_path_for_dir,
                     current_page_dir=page_path.parent,
+                    current_dir=d,
             )
 
         home_link = os.path.relpath(page_path_for_dir(root_dir), start=page_path.parent)

@@ -28,6 +28,18 @@
       background: #f6f6f6;
       border: 1px solid #eee;
     }
+    .no-thumb {
+      width: 100%;
+      height: 170px;
+      border-radius: 8px;
+      background: #f6f6f6;
+      border: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #bbb;
+      font-size: 13px;
+    }
     .label { margin-top: 8px; font-size: 14px; }
     .label a { color: inherit; text-decoration: none; }
     .label a:hover { text-decoration: underline; }
@@ -40,6 +52,7 @@
 	.tree a { text-decoration: none; }
 	.tree a:hover { text-decoration: underline; }
 	.tree .title { font-weight: 600; margin-bottom: 6px; }
+	.tree .current { font-weight: 700; color: #000; }
 
 
 	.layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; align-items: start; }
@@ -57,7 +70,11 @@
 <ul>
   {%- for n in nodes %}
   <li>
+    {%- if n.is_current %}
+    <span class="current">{{ n.name }}</span>
+    {%- else %}
     <a href="{{ n.link }}">{{ n.name }}</a>
+    {%- endif %}
     {%- if n.children and n.children|length %}
       {{ render_tree(n.children) }}
     {%- endif %}
@@ -107,8 +124,6 @@
           </div>
           {% if d.readme_title and d.readme_link %}
             <div class="sub"><a href="{{ d.readme_link }}">{{ d.readme_title }}</a></div>
-          {% else %}
-            <div class="sub muted">No README</div>
           {% endif %}
         </div>
         {% endfor %}
@@ -127,10 +142,10 @@
           {% if f.thumb %}
             <a href="{{ f.path }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
           {% else %}
-            <div class="thumb"></div>
+            <a href="{{ f.path }}"><div class="no-thumb">{{ f.ext or '?' }}</div></a>
           {% endif %}
           <div class="label">
-            <strong>{{ f.display }}</strong>
+            <a href="{{ f.path }}"><strong>{{ f.display }}</strong></a>
           </div>
           {% if f.ext %}
             <div class="sub muted"><code>{{ f.ext }}</code></div>
