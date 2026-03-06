@@ -3,7 +3,7 @@ import zipfile
 from pathlib import Path
 
 from maker_file_index.model import IndexRecord
-from maker_file_index.thumbnails import thumbnail_path_for, write_bytes, thumbnail_is_fresh
+from maker_file_index.thumbnails import thumbnail_path_for, write_bytes
 
 
 class ThreeMFPlugin:
@@ -14,47 +14,33 @@ class ThreeMFPlugin:
         return path.suffix.lower() in self.extensions
 
     def index(self, path: Path) -> IndexRecord:
-        thumb_path = Path("")
+        thumb_path = thumbnail_path_for(path)
+        error = ""
 
-        try:
-            with zipfile.ZipFile(path) as z:
+        if not thumb_path.exists():
+            try:
+                with zipfile.ZipFile(path) as z:
+                    preview_candidates = [
+                        name for name in z.namelist()
+                        if name.lower().startswith("metadata/")
+                        and name.lower().endswith((".png", ".jpg"))
+                    ]
 
-                preview_candidates = []
-                for name in z.namelist():
-                    lower = name.lower()
-                    if lower.startswith("metadata/") and lower.endswith((".png", ".jpg")):
-                        preview_candidates.append(name)
+                    if preview_candidates:
+                        preview_candidates.sort(key=lambda x: ("plate" not in x.lower(), x))
+                        scan_root = getattr(self, "scan_root", None)
+                        rel = path.relative_to(scan_root) if scan_root else Path(path.parent.name) / path.name
+                        print(f"Extracting thumbnail for {rel}")
+                        data = z.read(preview_candidates[0])
+                        write_bytes(thumb_path, data)
 
-                if preview_candidates:
-                    # prefer plate images if available
-                    preview_candidates.sort(key=lambda x: ("plate" not in x.lower(), x))
-                    preview_name = preview_candidates[0]
-                    #thumb_path = path.with_name(path.stem + "_thumbnail.png")
-                    thumb_path=thumbnail_path_for(path)
-                    if thumbnail_is_fresh(path, thumb_path):
-                        return IndexRecord(
-                            path=path,
-                            directory=path.parent,
-                            notes="",
-                            thumbnail_path=thumb_path,
-                            error="",
-                        )
-                    data = z.read(preview_name)
-                    write_bytes(thumb_path, data, overwrite=True)
-
-        except Exception as e:
-            return IndexRecord(
-                path=path,
-                directory=path.parent,
-                notes="",
-                thumbnail_path=Path(""),
-                error=str(e),
-            )
+            except Exception as e:
+                error = str(e)
 
         return IndexRecord(
             path=path,
             directory=path.parent,
             notes="",
-            thumbnail_path=thumb_path,
-            error="",
+            thumbnail_path=thumb_path if thumb_path.exists() else Path(""),
+            error=error,
         )

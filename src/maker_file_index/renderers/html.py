@@ -279,6 +279,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                     "display": display,
                     "ext": r.path.suffix.lower().lstrip("."),
                     "notes": notes_snippet,
+                    "error": r.error or "",
                 }
             )
 

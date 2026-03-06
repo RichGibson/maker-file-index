@@ -93,6 +93,8 @@
     .filter-bar input { width: 100%; box-sizing: border-box; padding: 7px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
     .filter-bar input:focus { border-color: #aaa; }
     .card.hidden { display: none; }
+    .error-badge { margin-top: 6px; font-size: 11px; color: #c0392b; background: #fdf0ef; border: 1px solid #f5c6c2; border-radius: 6px; padding: 2px 7px; display: inline-block; }
+    .card.has-error { border-color: #f5c6c2; }
   </style>
 </head>
 <body>
@@ -185,7 +187,7 @@
       <h2>Files</h2>
       <div class="grid" id="file-grid">
         {% for f in file_cards %}
-        <div class="card" data-name="{{ f.display | lower }} {{ f.ext }}">
+        <div class="card{% if f.error %} has-error{% endif %}" data-name="{{ f.display | lower }} {{ f.ext }}">
           {% if f.thumb %}
             <a href="{{ f.path }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
           {% else %}
@@ -197,6 +199,9 @@
           <div class="sub">{{ ext_badge(f.ext) }}</div>
           {% if f.notes %}
             <div class="notes-snippet">{{ f.notes }}</div>
+          {% endif %}
+          {% if f.error %}
+            <div class="error-badge" title="{{ f.error }}">&#9888; thumbnail error</div>
           {% endif %}
         </div>
         {% endfor %}
