@@ -3,12 +3,19 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 import pdb
 
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from maker_file_index.indexer import group_by_directory
 
+def url_path(p: str) -> str:
+    """
+    Convert a filesystem-relative path to a browser-friendly URL path.
+    Encodes spaces and special chars, keeps / separators.
+    """
+    return quote(p.replace(os.sep, "/"), safe="/")
 
 def _fmt_time() -> str:
     return (
@@ -121,7 +128,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if readme_path is not None:
                     lines = readme_path.read_text(encoding="utf-8", errors="replace").splitlines()
                     readme_title = lines[0].strip() if lines else ""
-                    readme_link = os.path.relpath(readme_path, start=page_path.parent)
+                    readme_link = url_path(os.path.relpath(readme_path, start=page_path.parent))
 
                 # First thumbnail in that directory (from any record there)
                 first_thumb = ""
@@ -129,7 +136,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 child_recs = child_bucket.get("records", [])
                 for r in child_recs:
                     if r.thumbnail_path and Path(r.thumbnail_path).exists():
-                        first_thumb = os.path.relpath(r.thumbnail_path, start=page_path.parent)
+                        first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=page_path.parent))
                         break
 
                 counts = _format_ext_counts(child_bucket.get("ext_counts", {}))
@@ -153,8 +160,22 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
         file_cards = []
         for r in recs:
             thumb = ""
-            if r.thumbnail_path and Path(r.thumbnail_path).exists():
-                thumb = os.path.relpath(r.thumbnail_path, start=page_path.parent)
+            tp = r.thumbnail_path
+
+            if tp:
+                tp = Path(tp)
+
+                # IMPORTANT: ignore sentinel empty thumbnail paths
+                if str(tp) in ("", ".", "./"):
+                    tp = None
+
+            if tp:
+                if not tp.is_absolute():
+                    tp = (r.path.parent / tp).resolve()
+
+                if tp.exists() and tp.is_file():
+                    thumb = url_path(os.path.relpath(tp, start=page_path.parent))
+
 
             # display: first line of notes, else filename
             display = r.path.name
@@ -165,7 +186,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
 
             file_cards.append(
                 {
-                    "path": os.path.relpath(r.path, start=page_path.parent),
+                    "path": url_path(os.path.relpath(r.path, start=page_path.parent)),
                     "thumb": thumb,
                     "display": display,
                     "ext": r.path.suffix.lower().lstrip("."),

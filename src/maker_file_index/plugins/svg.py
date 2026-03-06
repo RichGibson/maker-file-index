@@ -17,6 +17,6 @@ class SVGPlugin:
             path=path,
             directory=path.parent,
             notes="",
-            thumbnail_path=Path(""),
+            thumbnail_path=path,
             error="",
         )
