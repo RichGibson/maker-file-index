@@ -84,6 +84,7 @@
   <div class="stats">
     <div class="stat">&#128194; <strong>{{ total_dirs }}</strong> directories</div>
     <div class="stat">&#128196; <strong>{{ total_files }}</strong> files</div>
+    <button class="stat-btn active" id="btn-all" onclick="clearFilter()">All</button>
     {% for t in type_stats %}
     {%- set badge_cls = {"lightburn": "badge-lbrn2", "stl": "badge-stl", "openscad": "badge-scad", "3mf": "badge-3mf", "svg": "badge-svg", "dxf": "badge-dxf"}.get(t.key, "badge-default") %}
     <button class="stat-btn" data-key="{{ t.key }}" onclick="toggleType(this)"><span class="badge {{ badge_cls }}">{{ t.label }}</span> <strong>{{ t.count }}</strong></button>
@@ -130,17 +131,23 @@ function applyFilters() {
 
 function filterCards(q) { applyFilters(); }
 
+function clearFilter() {
+  activeType = null;
+  document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('btn-all').classList.add('active');
+  applyFilters();
+}
+
 function toggleType(btn) {
   var key = btn.dataset.key;
   if (activeType === key) {
-    activeType = null;
-    btn.classList.remove('active');
+    clearFilter();
   } else {
     activeType = key;
     document.querySelectorAll('.stat-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
+    applyFilters();
   }
-  applyFilters();
 }
 </script>
 </body>
