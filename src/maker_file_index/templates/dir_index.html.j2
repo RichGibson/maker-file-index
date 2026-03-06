@@ -133,9 +133,9 @@
 {% macro render_tree(nodes) -%}
 <ul>
   {%- for n in nodes %}
-  <li>
+  <li{% if n.children and n.children|length %} class="collapsed"{% endif %}>
     {%- if n.children and n.children|length %}
-    <span class="toggle" onclick="toggleTree(this)">▾</span>
+    <span class="toggle" onclick="toggleTree(this)">▸</span>
     {%- else %}
     <span class="spacer"></span>
     {%- endif %}
@@ -288,6 +288,21 @@ function toggleTree(btn) {
   li.classList.toggle('collapsed');
   btn.textContent = li.classList.contains('collapsed') ? '▸' : '▾';
 }
+
+/* Auto-expand the path from root down to the current directory */
+(function() {
+  var current = document.querySelector('.tree .current');
+  if (!current) return;
+  var el = current.parentElement;
+  while (el && !el.classList.contains('tree')) {
+    if (el.tagName === 'LI') {
+      el.classList.remove('collapsed');
+      var toggle = el.querySelector(':scope > .toggle');
+      if (toggle) toggle.textContent = '▾';
+    }
+    el = el.parentElement;
+  }
+})();
 
 /* Sidebar toggle */
 function toggleSidebar() {
