@@ -22,8 +22,8 @@ navigate around your files in convenient ways.
 
 ![Detail view of Maker-file-index](docs/maker-file-index-detail.png)
 
-If you drill down to a file you get a detail view. Right now this works for Lightburn
-files. Support for other formats hopefully to come!
+If you drill down to a file you get a detail view with rich metadata, geometry stats,
+and slicer/layer settings depending on the file type.
 
 ## Features
 
@@ -48,7 +48,10 @@ files. Support for other formats hopefully to come!
 - Colored file type badges on every card
 - Notes snippet displayed on file cards
 - Error badge on cards where thumbnail generation failed
-- **LightBurn detail pages** — clicking a `.lbrn2`/`.lbrn` file opens a rich detail page showing: thumbnail, file metadata (machine, LightBurn version, material height, mirror, size, modified date), notes, laser layer table (color-coded by layer, speed, power, passes, output, priority), shape counts by type, shapes per layer, embedded text strings, and estimated cut time with per-layer breakdown
+- **LightBurn detail pages** — thumbnail, file metadata (machine, LightBurn version, material height, mirror), notes, laser layer table (color-coded, speed, power, passes, output, priority), shape counts, shapes per layer, embedded text strings, estimated cut time with per-layer breakdown
+- **STL detail pages** — dimensions (mm + inches), mesh stats (triangles, vertices, edges, connected components), manifold check, surface area and volume
+- **3MF detail pages** — dimensions, mesh stats, manifold check, surface area and volume, package metadata (title, author, application), object/part names, slicer settings table (printer model, layer height, infill, supports, speeds — when present)
+- **SVG detail pages** — SVG rendered directly as preview, document dimensions and viewBox, authoring tool detection (Inkscape, Illustrator, etc.), path count, open/closed paths, total estimated path length, element type breakdown, named layers/groups, text content
 
 ## Requirements
 
@@ -101,14 +104,16 @@ Show which plugin handles each file.
 
 ## Utilities
 
+### Installed CLI tools
+
 ```bash
 lightburn-extract-notes <filename>   # Extract notes from a LightBurn file
 lightburn-extract-text <filename>    # Extract text from a LightBurn file
 ```
 
-### lightburn_extract
+### scripts/lightburn_extract.py
 
-Standalone script that extracts detailed information from a LightBurn file and prints a human-readable report (or structured JSON).
+Extracts detailed information from a LightBurn file: metadata, notes, text strings, shape counts, cut settings, and estimated cut time with per-layer breakdown.
 
 ```bash
 python scripts/lightburn_extract.py file.lbrn2
@@ -116,30 +121,61 @@ python scripts/lightburn_extract.py file.lbrn2 --json
 python scripts/lightburn_extract.py file.lbrn2 --overhead-factor 1.25
 ```
 
-**What it reports:**
-
-- Project metadata (AppVersion, DeviceName, MaterialHeight, Mirror)
-- Notes and all text strings found in shapes (including those nested in groups)
-- Shape counts by type (Path, Text, Group, …)
-- Cut settings per layer (speed, power, passes, output flag)
-- Estimated machine time — total and per layer — based on measured path/bezier lengths and layer speeds
-
-**Options:**
-
 | Option | Description |
 |--------|-------------|
 | `filename` | Path to `.lbrn2` or `.lbrn` file |
 | `--json` | Emit structured JSON instead of a human-readable report |
 | `--overhead-factor FLOAT` | Overhead multiplier for travel moves (default: `1.15`) |
 
-**Notes on the time estimate:**
+Time estimate notes: line geometry is measured directly; bezier curves are approximated from control points; non-output layers are excluded; travel moves and acceleration are not modeled.
 
-- Line geometry is measured directly; bezier curves are approximated from control points
-- Text shapes use backup paths when present
-- Non-output layers are excluded
-- Travel moves, acceleration, corner slowdowns, lead-ins, and controller overhead are not modeled exactly — the estimate is approximate
+### scripts/stl_extract.py
 
-### extract_thumbnail
+Extracts geometry information from an STL file: format (binary/ASCII), header, triangle count, bounding box, dimensions, unique vertices/edges, connected components, manifold check, surface area, and volume.
+
+```bash
+python scripts/stl_extract.py model.stl
+python scripts/stl_extract.py model.stl --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `filename` | Path to `.stl` file |
+| `--json` | Emit structured JSON instead of plain text |
+
+### scripts/3mf_extract.py
+
+Extracts geometry, package metadata, and slicer settings from a 3MF file. Supports standard 3MF and Bambu Lab project files.
+
+```bash
+python scripts/3mf_extract.py model.3mf
+python scripts/3mf_extract.py model.3mf --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `filename` | Path to `.3mf` file |
+| `--json` | Emit structured JSON instead of plain text |
+
+Reports: package metadata, unit, bounding box (raw and build-transformed), vertex/triangle counts, manifold check, surface area, volume, slicer settings (layer height, infill, supports, speeds, etc.), and object/part names.
+
+### scripts/svg_extract.py
+
+Extracts structure and geometry from an SVG file: dimensions, viewBox, element counts, named groups/layers, text content, path lengths, and open/closed path statistics.
+
+```bash
+python scripts/svg_extract.py file.svg
+python scripts/svg_extract.py file.svg --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `filename` | Path to `.svg` file |
+| `--json` | Emit structured JSON instead of plain text |
+
+Reports: root attributes, namespaces, element counts by tag, groups and Inkscape layer labels, text strings, overall bounding box, total estimated path length (bezier and arc curves approximated), and per-path details.
+
+### scripts/extract_thumbnail.py
 
 Standalone script for extracting and debugging thumbnails from LightBurn files.
 
@@ -149,24 +185,22 @@ python scripts/extract_thumbnail.py file.lbrn2 -o thumb.png
 python scripts/extract_thumbnail.py file.lbrn2 --debug
 ```
 
-**Options:**
-
 | Option | Description |
 |--------|-------------|
 | `file` | Path to `.lbrn2` or `.lbrn` file |
 | `-o, --output PATH` | Output path (default: `<stem>_thumbnail.<ext>` next to input) |
 | `--debug` | Show XML structure, where base64 data was found, decoded size, and detected image format |
 
-The `--debug` flag is useful when a file has a `Thumbnail Source` in the XML but no image is being generated — it shows exactly what was found and where extraction failed.
+The `--debug` flag is useful when a file has a `Thumbnail Source` in the XML but no image is being generated.
 
 ## Supported file types
 
-| Type | Extensions | Thumbnail |
-|------|-----------|-----------|
-| LightBurn | `.lbrn2`, `.lbrn` | Embedded in file |
-| STL | `.stl` | Rendered via numpy-stl + matplotlib |
-| OpenSCAD | `.scad` | Rendered via OpenSCAD CLI |
-| 3MF | `.3mf` | Extracted from zip archive |
-| SVG | `.svg` | Displayed directly |
-| DXF | `.dxf` | Rendered via ezdxf + matplotlib |
-| Corel Draw | `.cdr` | Embedded in file |
+| Type | Extensions | Thumbnail | Detail page |
+|------|-----------|-----------|-------------|
+| LightBurn | `.lbrn2`, `.lbrn` | Embedded in file | Yes |
+| STL | `.stl` | Rendered via numpy-stl + matplotlib | Yes |
+| 3MF | `.3mf` | Extracted from zip archive | Yes |
+| SVG | `.svg` | Displayed directly | Yes |
+| OpenSCAD | `.scad` | Rendered via OpenSCAD CLI | — |
+| DXF | `.dxf` | Rendered via ezdxf + matplotlib | — |
+| Corel Draw | `.cdr` | Embedded in file | — |
