@@ -52,6 +52,7 @@ and slicer/layer settings depending on the file type.
 - **STL detail pages** — dimensions (mm + inches), mesh stats (triangles, vertices, edges, connected components), manifold check, surface area and volume
 - **3MF detail pages** — dimensions, mesh stats, manifold check, surface area and volume, package metadata (title, author, application), object/part names, slicer settings table (printer model, layer height, infill, supports, speeds — when present)
 - **SVG detail pages** — SVG rendered directly as preview, document dimensions and viewBox, authoring tool detection (Inkscape, Illustrator, etc.), path count, open/closed paths, total estimated path length, element type breakdown, named layers/groups, text content
+- **DXF detail pages** — thumbnail, AutoCAD version, dimensions, entity type breakdown, estimated path length by type, layer table (with ACI color swatches), entities-by-layer counts, text content
 
 ## Requirements
 
@@ -175,6 +176,22 @@ python scripts/svg_extract.py file.svg --json
 
 Reports: root attributes, namespaces, element counts by tag, groups and Inkscape layer labels, text strings, overall bounding box, total estimated path length (bezier and arc curves approximated), and per-path details.
 
+### scripts/dxf_extract.py
+
+Extracts structure and geometry from a DXF file: header info, layer definitions, entity counts by type and layer, estimated path lengths, and text content.
+
+```bash
+python scripts/dxf_extract.py file.dxf
+python scripts/dxf_extract.py file.dxf --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `filename` | Path to `.dxf` file (ASCII format) |
+| `--json` | Emit structured JSON instead of plain text |
+
+Reports: AutoCAD version, sections present, layer table (name, color, linetype), entity counts, entities by layer, bounding box, estimated lengths for LINE/POLYLINE/CIRCLE/ARC/ELLIPSE, and all text content (TEXT, MTEXT, ATTRIB).
+
 ### scripts/extract_thumbnail.py
 
 Standalone script for extracting and debugging thumbnails from LightBurn files.
@@ -202,5 +219,5 @@ The `--debug` flag is useful when a file has a `Thumbnail Source` in the XML but
 | 3MF | `.3mf` | Extracted from zip archive | Yes |
 | SVG | `.svg` | Displayed directly | Yes |
 | OpenSCAD | `.scad` | Rendered via OpenSCAD CLI | — |
-| DXF | `.dxf` | Rendered via ezdxf + matplotlib | — |
+| DXF | `.dxf` | Rendered via ezdxf + matplotlib | Yes |
 | Corel Draw | `.cdr` | Embedded in file | — |

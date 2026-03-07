@@ -12,11 +12,32 @@ from maker_file_index.plugins.lightburn import extract_lightburn_details
 from maker_file_index.plugins.stl import extract_stl_details
 from maker_file_index.plugins.three_mf import extract_3mf_details
 from maker_file_index.plugins.svg import extract_svg_details
+from maker_file_index.plugins.dxf import extract_dxf_details
 
 LIGHTBURN_EXTS = {"lbrn2", "lbrn"}
 STL_EXTS = {"stl"}
 THREE_MF_EXTS = {"3mf"}
 SVG_EXTS = {"svg"}
+DXF_EXTS = {"dxf"}
+
+# AutoCAD Color Index (ACI) → approximate CSS color for the most common indices
+_ACI_CSS = {
+    1: "#ff0000", 2: "#ffff00", 3: "#00ff00", 4: "#00ffff",
+    5: "#0000ff", 6: "#ff00ff", 7: "#ffffff", 8: "#808080",
+    9: "#c0c0c0", 10: "#ff4040", 11: "#ff8080", 12: "#ff0040",
+    13: "#ff4080", 14: "#ff0080", 30: "#ff8000", 40: "#ffbf00",
+    50: "#ffff40", 60: "#80ff00", 70: "#00ff80", 80: "#00ffbf",
+    90: "#00bfff", 100: "#0080ff", 110: "#8000ff", 120: "#bf00ff",
+    130: "#ff00bf", 140: "#ff0080", 150: "#ff4040", 250: "#333333",
+    251: "#555555", 252: "#777777", 253: "#999999", 254: "#bbbbbb",
+    255: "#dddddd",
+}
+
+def _aci_to_css(color_num) -> str:
+    """Convert an ACI color number to a CSS color string."""
+    if color_num is None:
+        return "#888888"
+    return _ACI_CSS.get(int(color_num), "#888888")
 
 
 def url_path(p: str) -> str:
@@ -232,8 +253,8 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
         for r in sorted(bucket.get("records", []), key=lambda r: r.path.name.lower()):
             ext = r.path.suffix.lower().lstrip(".")
 
-            # Detail page link for LightBurn, STL, 3MF, and SVG files, raw file otherwise
-            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS:
+            # Detail page link for supported file types, raw file otherwise
+            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS:
                 rel = r.path.parent.relative_to(root_dir)
                 detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
                 file_link = url_path(os.path.relpath(detail_page, start=out_dir))
@@ -443,9 +464,9 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             except OSError:
                 file_mtime = 0
 
-            # For LightBurn, STL, 3MF, and SVG files, link to a detail page instead of the raw file
+            # For supported file types, link to a detail page instead of the raw file
             detail_link = ""
-            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS:
+            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS:
                 rel = r.path.parent.relative_to(root_dir)
                 detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
                 detail_link = url_path(os.path.relpath(detail_page, start=page_path.parent))
@@ -521,7 +542,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             dir_link = url_path(os.path.relpath(sd_page, start=page_path.parent))
             for r in sd_bucket.get("records", []):
                 ext = r.path.suffix.lower().lstrip(".")
-                if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS:
+                if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS:
                     r_rel = r.path.parent.relative_to(root_dir)
                     dp = (dirs_root / r_rel / r.path.stem).with_suffix(".html")
                     flink = url_path(os.path.relpath(dp, start=page_path.parent))
@@ -859,6 +880,87 @@ def write_svg_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
                 thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+
+        try:
+            stat = r.path.stat()
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+            size_bytes = stat.st_size
+            if size_bytes >= 1024 * 1024:
+                file_size = f"{size_bytes / 1024 / 1024:.1f} MB"
+            elif size_bytes >= 1024:
+                file_size = f"{size_bytes / 1024:.1f} KB"
+            else:
+                file_size = f"{size_bytes} B"
+        except OSError:
+            modified = ""
+            file_size = ""
+
+        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+
+        crumb_parts = []
+        cur = r.path.parent
+        while cur != root_dir and cur.parent != cur:
+            crumb_parts.append(cur)
+            cur = cur.parent
+        crumb_parts.reverse()
+
+        breadcrumbs = []
+        for part in crumb_parts:
+            part_rel = part.relative_to(root_dir)
+            part_page = (dirs_root / part_rel / "index.html").resolve()
+            breadcrumbs.append({
+                "name": part.name,
+                "link": os.path.relpath(part_page, start=page_path.parent),
+            })
+        breadcrumbs.append({"name": r.path.name, "link": ""})
+
+        rendered = template.render(
+            filename=r.path.name,
+            home_link=home_link,
+            breadcrumbs=breadcrumbs,
+            thumbnail=thumbnail,
+            details=details,
+            modified=modified,
+            file_size=file_size,
+        )
+
+        page_path.write_text(rendered, encoding="utf-8")
+
+
+def write_dxf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
+    """
+    For each DXF record, writes a detail page at:
+      out_dir/dirs/<relative_dir>/<stem>.html
+    """
+    out_dir = out_dir.expanduser().resolve()
+    root_dir = root_dir.expanduser().resolve()
+    dirs_root = out_dir / "dirs"
+
+    env = Environment(
+        loader=PackageLoader("maker_file_index", "templates"),
+        autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+    )
+    env.filters["dxf_aci_css"] = _aci_to_css
+    template = env.get_template("dxf_detail.html.j2")
+
+    dxf_records = [r for r in records if r.path.suffix.lower().lstrip(".") in DXF_EXTS]
+
+    for r in dxf_records:
+        rel = r.path.parent.relative_to(root_dir)
+        page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
+        page_path.parent.mkdir(parents=True, exist_ok=True)
+
+        details = extract_dxf_details(r.path)
+
+        thumbnail = ""
+        tp = r.thumbnail_path
+        if tp:
+            tp = Path(tp)
+            if str(tp) not in ("", ".", "./"):
+                if not tp.is_absolute():
+                    tp = (r.path.parent / tp).resolve()
+                if tp.exists() and tp.is_file():
+                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
 
         try:
             stat = r.path.stat()

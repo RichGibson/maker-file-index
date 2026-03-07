@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ filename }}</title>
+  <script>
+    (function() {
+      var t = localStorage.getItem('mfi-theme') || 'auto';
+      var dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    })();
+  </script>
+  <style>
+    :root {
+      --bg: #f5f5f5; --surface: #ffffff; --surface-alt: #f3f3f3; --surface-hover: #e8e8e8;
+      --border: #dddddd; --border-light: #eeeeee;
+      --text: #222222; --text-dim: #444444; --text-muted: #888888; --text-faint: #aaaaaa; --text-faintest: #cccccc;
+      --nav-bg: #ffffff; --nav-border: #dddddd;
+      --shadow: rgba(0,0,0,0.09);
+    }
+    [data-theme="dark"] {
+      --bg: #18181b; --surface: #27272a; --surface-alt: #1e1e21; --surface-hover: #323236;
+      --border: #3f3f46; --border-light: #2e2e33;
+      --text: #f4f4f5; --text-dim: #d4d4d8; --text-muted: #a1a1aa; --text-faint: #71717a; --text-faintest: #52525b;
+      --nav-bg: #1c1c1f; --nav-border: #3f3f46;
+      --shadow: rgba(0,0,0,0.4);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: var(--bg); line-height: 1.4; color: var(--text); }
+
+    .topnav { background: var(--nav-bg); border-bottom: 1px solid var(--nav-border); padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .topnav-brand { font-weight: 700; font-size: 15px; text-decoration: none; color: var(--text); }
+    .topnav-right { position: relative; display: flex; align-items: center; gap: 10px; }
+    .settings-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--text-dim); }
+    .settings-btn:hover { background: var(--surface-alt); }
+    .settings-panel { display: none; position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; box-shadow: 0 4px 20px var(--shadow); min-width: 180px; z-index: 200; }
+    .settings-panel.open { display: block; }
+    .settings-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 10px; }
+    .theme-opt { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); padding: 5px 0; cursor: pointer; }
+    .theme-opt input { cursor: pointer; accent-color: #0099ff; }
+
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .topbar a { text-decoration: none; color: var(--text-muted); font-size: 13px; }
+    .topbar a:hover { text-decoration: underline; }
+    .topbar .sep { color: var(--border); }
+    .topbar .filename { font-weight: 600; color: var(--text); font-size: 13px; }
+
+    .content { max-width: 960px; margin: 28px auto; padding: 0 24px; display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+
+    .thumb-col img { width: 100%; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
+    .no-thumb { width: 100%; height: 260px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-alt); display: flex; align-items: center; justify-content: center; color: var(--text-faintest); font-size: 14px; }
+
+    .file-meta { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .file-meta table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .file-meta td { padding: 4px 0; vertical-align: top; }
+    .file-meta td:first-child { color: var(--text-muted); width: 100px; }
+    .file-meta td:last-child { font-weight: 500; }
+
+    .detail-col h1 { margin: 0 0 4px; font-size: 1.4rem; word-break: break-all; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; background: #f0e8ff; color: #5b21b6; margin-bottom: 16px; }
+
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+    .section h2 { margin: 0 0 12px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+
+    .stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat-box { background: var(--surface-alt); border-radius: 8px; padding: 10px 14px; min-width: 90px; }
+    .stat-box .val { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+    .stat-box .lbl { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { background: var(--surface-alt); border-radius: 6px; padding: 4px 12px; font-size: 13px; color: var(--text); }
+    .chip strong { margin-left: 4px; }
+
+    .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .kv-table td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+    .kv-table tr:last-child td { border-bottom: none; }
+    .kv-table td:first-child { color: var(--text-muted); width: 44%; }
+    .kv-table td:last-child { font-weight: 500; font-variant-numeric: tabular-nums; }
+
+    .layers-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .layers-table th { text-align: left; padding: 5px 8px 5px 0; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+    .layers-table td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--border-light); color: var(--text); }
+    .layers-table tr:last-child td { border-bottom: none; }
+    .color-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.15); margin-right: 6px; vertical-align: middle; }
+
+    .text-list { list-style: none; margin: 0; padding: 0; }
+    .text-list li { padding: 4px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; font-family: monospace; }
+    .text-list li:last-child { border-bottom: none; }
+
+    .unit-note { font-size: 11px; color: var(--text-faint); margin-top: 8px; }
+
+    .error-box { background: #fff0f0; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #b91c1c; }
+    [data-theme="dark"] .error-box { background: #2d1515; border-color: #7f1d1d; color: #fca5a5; }
+
+    @media (max-width: 680px) {
+      .content { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a class="topnav-brand" href="{{ home_link }}">Maker File Index</a>
+  <div class="topnav-right">
+    <button class="settings-btn" onclick="toggleSettings(event)">&#9881; Settings</button>
+    <div class="settings-panel" id="settings-panel">
+      <div class="settings-title">Appearance</div>
+      <label class="theme-opt"><input type="radio" name="theme" value="light" onchange="setTheme('light')"> &#9728; Light</label>
+      <label class="theme-opt"><input type="radio" name="theme" value="dark"  onchange="setTheme('dark')">  &#9790; Dark</label>
+      <label class="theme-opt"><input type="radio" name="theme" value="auto"  onchange="setTheme('auto')">  &#128187; System</label>
+    </div>
+  </div>
+</nav>
+
+<div class="topbar">
+  {% for crumb in breadcrumbs %}
+    {% if not loop.last %}
+    <a href="{{ crumb.link }}">{{ crumb.name }}</a>
+    <span class="sep">›</span>
+    {% else %}
+    <span class="filename">{{ filename }}</span>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<div class="content">
+
+  <div class="thumb-col">
+    {% if thumbnail %}
+    <img src="{{ thumbnail }}" alt="{{ filename }}" />
+    {% else %}
+    <div class="no-thumb">No preview</div>
+    {% endif %}
+
+    <div class="file-meta">
+      <table>
+        <tr><td>Format</td><td>DXF (ASCII)</td></tr>
+        {% if details.acad_version %}
+        <tr><td>AutoCAD ver.</td><td>{{ details.acad_version }}{% if details.acad_version_name %} (R{{ details.acad_version_name }}){% endif %}</td></tr>
+        {% endif %}
+        <tr><td>Modified</td><td>{{ modified }}</td></tr>
+        <tr><td>Size</td><td>{{ file_size }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="detail-col">
+    <h1>{{ filename }}</h1>
+    <span class="badge">DXF</span>
+
+    {% if details.error %}
+    <div class="error-box">Could not parse DXF: {{ details.error }}</div>
+    {% else %}
+
+    {% if details.size_x or details.size_y %}
+    <div class="section">
+      <h2>Dimensions</h2>
+      <div class="stat-row">
+        {% if details.size_x %}
+        <div class="stat-box">
+          <div class="val">{{ details.size_x }}</div>
+          <div class="lbl">Width (X)</div>
+        </div>
+        {% endif %}
+        {% if details.size_y %}
+        <div class="stat-box">
+          <div class="val">{{ details.size_y }}</div>
+          <div class="lbl">Height (Y)</div>
+        </div>
+        {% endif %}
+        {% if details.size_z and details.size_z != "0.00" %}
+        <div class="stat-box">
+          <div class="val">{{ details.size_z }}</div>
+          <div class="lbl">Depth (Z)</div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="unit-note">Dimensions in drawing units. Check the file's header or original application for the unit system (mm, inches, etc.).</div>
+    </div>
+    {% endif %}
+
+    {% if details.total_entities %}
+    <div class="section">
+      <h2>Entities</h2>
+      <div class="stat-row" style="margin-bottom:12px;">
+        <div class="stat-box">
+          <div class="val">{{ details.total_entities }}</div>
+          <div class="lbl">Total entities</div>
+        </div>
+        {% if details.total_length %}
+        <div class="stat-box">
+          <div class="val">{{ details.total_length }}</div>
+          <div class="lbl">Est. total length</div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="chips">
+        {% for etype, count in details.entity_counts.items() %}
+        <div class="chip">{{ etype }}<strong> ×{{ count }}</strong></div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if details.length_by_type %}
+    <div class="section">
+      <h2>Estimated length by type</h2>
+      <table class="kv-table">
+        <tbody>
+          {% for etype, length in details.length_by_type.items() %}
+          <tr>
+            <td>{{ etype }}</td>
+            <td>{{ length }} units</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="unit-note">Lengths in drawing units. Lines, polylines, circles, arcs, and ellipses are measured. Splines and other entities are not included.</div>
+    </div>
+    {% endif %}
+
+    {% if details.layers %}
+    <div class="section">
+      <h2>Layers</h2>
+      <table class="layers-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Color</th>
+            <th>Linetype</th>
+            <th>Entities</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for layer in details.layers %}
+          <tr>
+            <td>{{ layer.name }}</td>
+            <td>
+              {% if layer.color is not none %}
+              <span class="color-swatch" style="background:{{ layer.color | dxf_aci_css }}"></span>{{ layer.color }}
+              {% endif %}
+            </td>
+            <td>{{ layer.linetype or '' }}</td>
+            <td>{{ details.entities_by_layer.get(layer.name, '') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if details.entities_by_layer and not details.layers %}
+    <div class="section">
+      <h2>Entities by layer</h2>
+      <div class="chips">
+        {% for layer_name, count in details.entities_by_layer.items() %}
+        <div class="chip">{{ layer_name }}<strong> ×{{ count }}</strong></div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if details.texts %}
+    <div class="section">
+      <h2>Text content</h2>
+      <ul class="text-list">
+        {% for t in details.texts %}
+        <li>{{ t }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function applyTheme(t) {
+  var dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+}
+function setTheme(t) { localStorage.setItem('mfi-theme', t); applyTheme(t); }
+function toggleSettings(e) {
+  e.stopPropagation();
+  document.getElementById('settings-panel').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  var p = document.getElementById('settings-panel');
+  if (p && !p.contains(e.target)) p.classList.remove('open');
+});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+  if ((localStorage.getItem('mfi-theme') || 'auto') === 'auto') applyTheme('auto');
+});
+(function() {
+  var saved = localStorage.getItem('mfi-theme') || 'auto';
+  var r = document.querySelector('input[name="theme"][value="' + saved + '"]');
+  if (r) r.checked = true;
+})();
+</script>
+</body>
+</html>
