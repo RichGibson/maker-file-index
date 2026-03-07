@@ -238,7 +238,7 @@
           <tr>
             <td>{{ layer.name }}</td>
             <td>
-              {% if layer.color is not none %}
+              {% if layer.color is defined and layer.color is not none %}
               <span class="color-swatch" style="background:{{ layer.color | dxf_aci_css }}"></span>{{ layer.color }}
               {% endif %}
             </td>
