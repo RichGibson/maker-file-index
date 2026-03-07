@@ -91,6 +91,12 @@
     .text-list li:last-child { border-bottom: none; }
 
     .muted { color: var(--text-faint); font-size: 13px; }
+    .layer-off { opacity: 0.45; }
+    .time-summary { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+    .time-stat { background: var(--surface-alt); border-radius: 8px; padding: 8px 14px; font-size: 13px; }
+    .time-stat .val { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .time-stat .lbl { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .time-note { font-size: 11px; color: var(--text-faint); margin-top: 10px; }
 
     @media (max-width: 680px) {
       .content { grid-template-columns: 1fr; }
@@ -143,6 +149,9 @@
         {% if details.material_height and details.material_height != '0' %}
         <tr><td>Material&nbsp;height</td><td>{{ details.material_height }} mm</td></tr>
         {% endif %}
+        {% if details.mirror_x or details.mirror_y %}
+        <tr><td>Mirror</td><td>{% if details.mirror_x == 'True' %}X{% endif %}{% if details.mirror_x == 'True' and details.mirror_y == 'True' %}, {% endif %}{% if details.mirror_y == 'True' %}Y{% endif %}</td></tr>
+        {% endif %}
         <tr><td>Modified</td><td>{{ modified }}</td></tr>
         <tr><td>Size</td><td>{{ file_size }}</td></tr>
       </table>
@@ -162,7 +171,7 @@
 
     {% if details.text_strings %}
     <div class="section">
-      <h2>Notes</h2>
+      <h2>Text content</h2>
       <ul class="text-list">
         {% for t in details.text_strings %}
         <li>{{ t }}</li>
@@ -183,12 +192,14 @@
             <th>Speed</th>
             <th>Power</th>
             <th>Passes</th>
+            <th>Output</th>
+            <th>Priority</th>
           </tr>
         </thead>
         <tbody>
           {% for layer in details.layers %}
-          <tr>
-            <td>C{{ "%02d"|format(layer.index|int) }}</td>
+          <tr{% if not layer.do_output %} class="layer-off"{% endif %}>
+            <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:{{ layer.color }};margin-right:5px;vertical-align:middle;"></span>C{{ "%02d"|format(layer.index|int) }}</td>
             <td>{{ layer.name }}</td>
             <td><span class="layer-type type-{{ layer.type }}">{{ layer.type }}</span></td>
             <td>{{ layer.speed }} mm/s</td>
@@ -200,10 +211,68 @@
               {% endif %}
             </td>
             <td>{{ layer.passes }}</td>
+            <td>{% if layer.do_output %}Yes{% else %}<span style="color:var(--text-faint)">No</span>{% endif %}</td>
+            <td>{{ layer.priority }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+    </div>
+    {% endif %}
+
+    {% if details.shape_counts %}
+    <div class="section">
+      <h2>Shape counts</h2>
+      <div class="shapes-list">
+        {% for type, count in details.shape_counts.items() %}
+        <div class="shape-chip" style="background:var(--surface-alt);color:var(--text);">{{ type }}<strong> ×{{ count }}</strong></div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if details.time_estimate and details.time_estimate.by_layer %}
+    <div class="section">
+      <h2>Estimated cut time</h2>
+      <div class="time-summary">
+        <div class="time-stat">
+          <div class="val">{{ details.time_estimate.time_overhead }}</div>
+          <div class="lbl">Estimated time</div>
+        </div>
+        <div class="time-stat">
+          <div class="val">{{ details.time_estimate.time_raw }}</div>
+          <div class="lbl">Raw (no overhead)</div>
+        </div>
+        <div class="time-stat">
+          <div class="val">{{ "%.0f"|format(details.time_estimate.total_active_length_mm) }} mm</div>
+          <div class="lbl">Active cut length</div>
+        </div>
+      </div>
+      <table class="layers-table">
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Name</th>
+            <th>Paths</th>
+            <th>Length</th>
+            <th>Active length</th>
+            <th>Est. time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tl in details.time_estimate.by_layer %}
+          <tr{% if not tl.do_output %} class="layer-off"{% endif %}>
+            <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:{{ tl.color }};margin-right:5px;vertical-align:middle;"></span>C{{ "%02d"|format(tl.cut_index) }}</td>
+            <td>{{ tl.name }}</td>
+            <td>{{ tl.path_count }}</td>
+            <td>{{ tl.length_mm }} mm</td>
+            <td>{{ tl.active_length_mm }} mm</td>
+            <td>{% if tl.do_output %}{{ tl.time_overhead }}{% else %}<span style="color:var(--text-faint)">off</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="time-note">Estimate includes {{ ((details.time_estimate.overhead_factor - 1) * 100)|round|int }}% overhead for travel moves. Does not account for acceleration, corner slowdowns, or controller optimization.</div>
     </div>
     {% endif %}
 

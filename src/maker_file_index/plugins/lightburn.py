@@ -2,12 +2,115 @@ from __future__ import annotations
 
 import base64
 import binascii
+import math
+import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from maker_file_index.plugins.base import FilePlugin
 from maker_file_index.model import IndexRecord
 from maker_file_index.thumbnails import thumbnail_path_for, thumbnail_is_fresh, write_bytes
+
+_VERTEX_RE = re.compile(r"V([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s+([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)")
+_PRIM_RE = re.compile(r"([LB])(\d+)\s+(\d+)")
+
+
+def _parse_transform(text: str | None) -> tuple:
+    if not text:
+        return (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    values = [float(p) for p in text.split()]
+    return tuple(values) if len(values) == 6 else (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+
+
+def _apply_transform(point: tuple, xform: tuple) -> tuple:
+    a, b, c, d, e, f = xform
+    x, y = point
+    return (a * x + c * y + e, b * x + d * y + f)
+
+
+def _parse_vertices(text: str | None) -> list:
+    if not text:
+        return []
+    return [(float(m.group(1)), float(m.group(2))) for m in _VERTEX_RE.finditer(text)]
+
+
+def _parse_primitives(text: str | None) -> list:
+    if not text:
+        return []
+    return [(kind, int(s), int(e)) for kind, s, e in _PRIM_RE.findall(text)]
+
+
+def _bezier_length(p0, p1, p2, p3, steps: int = 24) -> float:
+    def pt(t):
+        u = 1.0 - t
+        return (
+            u**3 * p0[0] + 3 * u**2 * t * p1[0] + 3 * u * t**2 * p2[0] + t**3 * p3[0],
+            u**3 * p0[1] + 3 * u**2 * t * p1[1] + 3 * u * t**2 * p2[1] + t**3 * p3[1],
+        )
+    pts = [pt(i / steps) for i in range(steps + 1)]
+    return sum(math.dist(a, b) for a, b in zip(pts, pts[1:]))
+
+
+def _shape_path_length(shape_el: ET.Element) -> float:
+    xform = _parse_transform(shape_el.findtext("XForm"))
+    verts = [_apply_transform(v, xform) for v in _parse_vertices(shape_el.findtext("VertList"))]
+    prims = _parse_primitives((shape_el.findtext("PrimList") or "").strip())
+
+    if not verts:
+        return 0.0
+    if not prims:
+        return sum(math.dist(a, b) for a, b in zip(verts, verts[1:]))
+
+    length = 0.0
+    i = 0
+    while i < len(prims):
+        kind, start, end = prims[i]
+        if kind == "L":
+            if start < len(verts) and end < len(verts):
+                length += math.dist(verts[start], verts[end])
+            i += 1
+        elif kind == "B":
+            # Collect contiguous bezier chain
+            chain = [prims[i]]
+            j = i + 1
+            while j < len(prims) and prims[j][0] == "B":
+                chain.append(prims[j])
+                j += 1
+            if len(chain) >= 3:
+                k = 0
+                while k + 2 < len(chain):
+                    a, b, c = chain[k], chain[k + 1], chain[k + 2]
+                    if (a[2] == a[1] + 1 and b[1] == a[2] and c[1] == b[2]
+                            and c[2] == c[1] + 1 and c[2] < len(verts)):
+                        length += _bezier_length(verts[a[1]], verts[a[2]], verts[b[2]], verts[c[2]])
+                        k += 3
+                    else:
+                        if a[1] < len(verts) and a[2] < len(verts):
+                            length += math.dist(verts[a[1]], verts[a[2]])
+                        k += 1
+                while k < len(chain):
+                    seg = chain[k]
+                    if seg[1] < len(verts) and seg[2] < len(verts):
+                        length += math.dist(verts[seg[1]], verts[seg[2]])
+                    k += 1
+            else:
+                for seg in chain:
+                    if seg[1] < len(verts) and seg[2] < len(verts):
+                        length += math.dist(verts[seg[1]], verts[seg[2]])
+            i = j
+        else:
+            i += 1
+    return length
+
+
+def _fmt_time(seconds: float | None) -> str:
+    if seconds is None:
+        return "n/a"
+    mins, secs = divmod(seconds, 60)
+    hours, mins = divmod(int(mins), 60)
+    if hours:
+        return f"{hours}h {mins}m {secs:.0f}s"
+    return f"{int(mins)}m {secs:.0f}s"
 
 
 LIKELY_EXTS = {".lbrn2", ".lbrn"}
@@ -168,6 +271,9 @@ def extract_lightburn_details(path: Path) -> dict:
     app_version = root.attrib.get("AppVersion", "")
     device_name = root.attrib.get("DeviceName", "")
     material_height = root.attrib.get("MaterialHeight", "")
+    mirror_x = root.attrib.get("MirrorX", "")
+    mirror_y = root.attrib.get("MirrorY", "")
+    format_version = root.attrib.get("FormatVersion", "")
 
     notes_el = root.find(".//Notes")
     notes = ""
@@ -178,6 +284,11 @@ def extract_lightburn_details(path: Path) -> dict:
     layers = []
     for cs in root.findall("CutSetting"):
         data = {c.tag: c.attrib.get("Value", "") for c in cs}
+        try:
+            idx = int(data.get("index", "0"))
+        except ValueError:
+            idx = 0
+        color = _layer_color(idx)
         layers.append({
             "index": data.get("index", "?"),
             "name": data.get("name", ""),
@@ -186,6 +297,11 @@ def extract_lightburn_details(path: Path) -> dict:
             "min_power": data.get("minPower", ""),
             "max_power": data.get("maxPower", ""),
             "passes": data.get("numPasses", "1"),
+            "do_output": data.get("doOutput", "1") != "0",
+            "priority": data.get("priority", ""),
+            "interval": data.get("interval", ""),
+            "color": color,
+            "text_color": _text_color_for(color),
         })
 
     # Build layer map: index → name + color
@@ -206,7 +322,7 @@ def extract_lightburn_details(path: Path) -> dict:
     shape_counts: dict[str, int] = {}
     shape_layer_counts: dict[int, int] = {}
     text_strings: list[str] = []
-    for s in root.findall("Shape"):
+    for s in root.iter("Shape"):
         t = s.attrib.get("Type", "Unknown")
         shape_counts[t] = shape_counts.get(t, 0) + 1
         try:
@@ -234,15 +350,80 @@ def extract_lightburn_details(path: Path) -> dict:
             "count": shape_layer_counts[idx],
         })
 
+    # --- Time estimate ---
+    OVERHEAD = 1.15
+    layer_lengths: dict[int, float] = {}
+    layer_path_counts: dict[int, int] = {}
+    for el in root.iter():
+        if el.tag == "Shape" and el.attrib.get("Type") == "Path":
+            ci = el.attrib.get("CutIndex")
+            if ci is not None:
+                ci = int(ci)
+                layer_lengths[ci] = layer_lengths.get(ci, 0.0) + _shape_path_length(el)
+                layer_path_counts[ci] = layer_path_counts.get(ci, 0) + 1
+        elif el.tag == "BackupPath" and el.attrib.get("Type") == "Path":
+            ci = el.attrib.get("CutIndex")
+            if ci is not None:
+                ci = int(ci)
+                layer_lengths[ci] = layer_lengths.get(ci, 0.0) + _shape_path_length(el)
+                layer_path_counts[ci] = layer_path_counts.get(ci, 0) + 1
+
+    # Build a fast lookup from layer list
+    layer_settings: dict[int, dict] = {int(l["index"]): l for l in layers if l["index"] != "?"}
+
+    total_active_mm = 0.0
+    total_raw_s = 0.0
+    total_overhead_s = 0.0
+    time_by_layer = []
+    for ci in sorted(layer_lengths):
+        lsetting = layer_settings.get(ci, {})
+        length_mm = layer_lengths[ci]
+        passes = int(lsetting.get("passes") or 1)
+        do_output = lsetting.get("do_output", True)
+        speed = float(lsetting.get("speed") or 0)
+        active_mm = length_mm * passes if do_output else 0.0
+        raw_s = (active_mm / speed) if (do_output and speed > 0) else None
+        overhead_s = (raw_s * OVERHEAD) if raw_s is not None else None
+        if raw_s is not None:
+            total_active_mm += active_mm
+            total_raw_s += raw_s
+            total_overhead_s += overhead_s
+        time_by_layer.append({
+            "cut_index": ci,
+            "name": lsetting.get("name", f"C{ci:02d}"),
+            "path_count": layer_path_counts.get(ci, 0),
+            "length_mm": round(length_mm, 2),
+            "active_length_mm": round(active_mm, 2),
+            "passes": passes,
+            "speed_mm_s": speed,
+            "do_output": do_output,
+            "time_raw": _fmt_time(raw_s),
+            "time_overhead": _fmt_time(overhead_s),
+            "color": layer_map.get(ci, {}).get("color", _layer_color(ci)),
+            "text_color": layer_map.get(ci, {}).get("text_color", "#222222"),
+        })
+
+    time_estimate = {
+        "total_active_length_mm": round(total_active_mm, 2),
+        "time_raw": _fmt_time(total_raw_s if total_raw_s else None),
+        "time_overhead": _fmt_time(total_overhead_s if total_overhead_s else None),
+        "overhead_factor": OVERHEAD,
+        "by_layer": time_by_layer,
+    }
+
     return {
         "app_version": app_version,
         "device_name": device_name,
         "material_height": material_height,
+        "mirror_x": mirror_x,
+        "mirror_y": mirror_y,
+        "format_version": format_version,
         "notes": notes,
         "layers": layers,
         "shape_counts": shape_counts,
         "shapes_by_layer": shapes_by_layer,
         "text_strings": text_strings[:20],
+        "time_estimate": time_estimate,
     }
 
 

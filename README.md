@@ -48,7 +48,7 @@ files. Support for other formats hopefully to come!
 - Colored file type badges on every card
 - Notes snippet displayed on file cards
 - Error badge on cards where thumbnail generation failed
-- **LightBurn detail pages** — clicking a `.lbrn2`/`.lbrn` file opens a rich detail page showing: thumbnail, file metadata (machine, LightBurn version, material height, size, modified date), notes, laser layer table (speed, power, passes, type), shape summary, and embedded text content
+- **LightBurn detail pages** — clicking a `.lbrn2`/`.lbrn` file opens a rich detail page showing: thumbnail, file metadata (machine, LightBurn version, material height, mirror, size, modified date), notes, laser layer table (color-coded by layer, speed, power, passes, output, priority), shape counts by type, shapes per layer, embedded text strings, and estimated cut time with per-layer breakdown
 
 ## Requirements
 
@@ -105,6 +105,39 @@ Show which plugin handles each file.
 lightburn-extract-notes <filename>   # Extract notes from a LightBurn file
 lightburn-extract-text <filename>    # Extract text from a LightBurn file
 ```
+
+### lightburn_extract
+
+Standalone script that extracts detailed information from a LightBurn file and prints a human-readable report (or structured JSON).
+
+```bash
+python scripts/lightburn_extract.py file.lbrn2
+python scripts/lightburn_extract.py file.lbrn2 --json
+python scripts/lightburn_extract.py file.lbrn2 --overhead-factor 1.25
+```
+
+**What it reports:**
+
+- Project metadata (AppVersion, DeviceName, MaterialHeight, Mirror)
+- Notes and all text strings found in shapes (including those nested in groups)
+- Shape counts by type (Path, Text, Group, …)
+- Cut settings per layer (speed, power, passes, output flag)
+- Estimated machine time — total and per layer — based on measured path/bezier lengths and layer speeds
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `filename` | Path to `.lbrn2` or `.lbrn` file |
+| `--json` | Emit structured JSON instead of a human-readable report |
+| `--overhead-factor FLOAT` | Overhead multiplier for travel moves (default: `1.15`) |
+
+**Notes on the time estimate:**
+
+- Line geometry is measured directly; bezier curves are approximated from control points
+- Text shapes use backup paths when present
+- Non-output layers are excluded
+- Travel moves, acceleration, corner slowdowns, lead-ins, and controller overhead are not modeled exactly — the estimate is approximate
 
 ### extract_thumbnail
 
