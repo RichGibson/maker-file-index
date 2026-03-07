@@ -164,6 +164,18 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
         rel = d.relative_to(root_dir)
         return (dirs_root / rel / "index.html").resolve()
 
+    def _subtree_ext_counts(d: Path) -> dict:
+        """Aggregate ext_counts from d and all its descendant directories."""
+        agg: dict[str, int] = {}
+        for dir_path, bucket in grouped.items():
+            try:
+                dir_path.relative_to(d)
+            except ValueError:
+                continue
+            for ext, n in bucket.get("ext_counts", {}).items():
+                agg[ext] = agg.get(ext, 0) + n
+        return agg
+
     dir_cards = []
     for d in top_dirs:
         bucket = grouped[d]
@@ -176,12 +188,13 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
                 first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=out_dir))
                 break
 
-        dir_exts = list(bucket.get("ext_counts", {}).keys())
+        agg_ext_counts = _subtree_ext_counts(d)
+        dir_exts = list(agg_ext_counts.keys())
         dir_cards.append({
             "name": d.name,
             "link": link,
             "first_thumb": first_thumb,
-            "counts": _format_ext_counts(bucket.get("ext_counts", {})),
+            "counts": _format_ext_counts(agg_ext_counts),
             "labels": _exts_to_labels(dir_exts),
             "mtime": int(_dir_mtime(d)),
         })
