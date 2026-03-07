@@ -45,18 +45,34 @@ def main(argv: list[str] | None = None) -> int:
 
     out_path = Path(args.output).expanduser().resolve()
     root_for_rel = Path(args.relpath_root).resolve() if args.relpath_root else None
-    write_markdown_report(records, out_path, root_for_rel=root_for_rel)
-    write_directory_pages(records, out_dir=out_path.parent, root_dir=Path(args.target).expanduser().resolve() if Path(args.target).expanduser().is_dir() else Path(args.target).expanduser().resolve().parent)
-
     root_dir = Path(args.target).expanduser().resolve() if Path(args.target).expanduser().is_dir() else Path(args.target).expanduser().resolve().parent
+
+    print(f"\nWriting markdown report ({len(records)} files)...")
+    write_markdown_report(records, out_path, root_for_rel=root_for_rel)
+    write_directory_pages(records, out_dir=out_path.parent, root_dir=root_dir)
+
+    print("Writing HTML directory pages...")
     write_directory_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+
+    print("Writing landing page...")
     write_landing_page_html(records, out_dir=out_path.parent, root_dir=root_dir)
+
+    print("Writing LightBurn detail pages...")
     write_lightburn_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+
+    print("Writing STL detail pages...")
     write_stl_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+
+    print("Writing 3MF detail pages...")
     write_3mf_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+
+    print("Writing SVG detail pages...")
     write_svg_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+
+    print("Writing DXF detail pages...")
     write_dxf_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
 
+    print("\nDone.")
     print(str(out_path))
     print(f"/dirs/index.md")
     print(f"/index.html")
