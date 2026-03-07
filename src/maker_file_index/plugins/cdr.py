@@ -5,7 +5,7 @@ import zipfile
 from pathlib import Path
 
 from maker_file_index.model import IndexRecord
-from maker_file_index.thumbnails import thumbnail_path_for, write_bytes
+from maker_file_index.thumbnails import thumbnail_path_for, thumbnail_is_fresh, write_bytes
 
 
 def _bmp_to_png(bmp_bytes: bytes) -> bytes:
@@ -76,7 +76,7 @@ class CDRPlugin:
         thumb_path = thumbnail_path_for(path)
         error = ""
 
-        if not thumb_path.exists():
+        if not thumbnail_is_fresh(path, thumb_path):
             try:
                 raw = _extract_preview(path)
                 if raw is not None:

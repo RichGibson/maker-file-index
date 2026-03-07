@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 from maker_file_index.model import IndexRecord
-from maker_file_index.thumbnails import thumbnail_path_for
+from maker_file_index.thumbnails import thumbnail_path_for, thumbnail_is_fresh
 
 
 def render_scad_thumbnail(scad_path: Path, thumb_path: Path) -> str:
@@ -53,7 +53,7 @@ class SCADPlugin:
     def index(self, path: Path) -> IndexRecord:
         thumb_path = thumbnail_path_for(path)
         error = ""
-        if not thumb_path.exists():
+        if not thumbnail_is_fresh(path, thumb_path):
             scan_root = getattr(self, "scan_root", None)
             rel = path.relative_to(scan_root) if scan_root else Path(path.parent.name) / path.name
             print(f"Creating thumbnail for {rel}")

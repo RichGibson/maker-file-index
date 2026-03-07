@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 
 from maker_file_index.model import IndexRecord
-from maker_file_index.thumbnails import thumbnail_path_for, write_bytes
+from maker_file_index.thumbnails import thumbnail_path_for, thumbnail_is_fresh, write_bytes
 
 
 # ---------------------------------------------------------------------------
@@ -241,7 +241,7 @@ class ThreeMFPlugin:
         thumb_path = thumbnail_path_for(path)
         error = ""
 
-        if not thumb_path.exists():
+        if not thumbnail_is_fresh(path, thumb_path):
             try:
                 with zipfile.ZipFile(path) as z:
                     preview_candidates = [
