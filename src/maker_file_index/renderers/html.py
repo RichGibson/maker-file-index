@@ -37,6 +37,7 @@ EXT_TO_LABEL = {
     "stl":   "STL",
     "scad":  "OpenSCAD",
     "3mf":   "3MF",
+    "cdr":   "CorelDRAW",
     "svg":   "SVG",
     "dxf":   "DXF",
 }

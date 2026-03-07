@@ -80,6 +80,7 @@
     .badge-3mf  { background: #ede0ff; color: #6b21a8; }
     .badge-svg  { background: #ffe0f0; color: #b0006a; }
     .badge-dxf  { background: #e0f7f7; color: #0e6868; }
+    .badge-cdr  { background: #fde8f0; color: #990055; }
     .badge-default { background: #f0f0f0; color: #555; }
 
     .tree { margin: 10px 0 18px 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--sidebar-bg); }
@@ -93,7 +94,7 @@
     .tree .spacer { display: inline-block; width: 26px; }
     .tree li.collapsed > ul { display: none; }
 
-    .layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; align-items: start; padding: 20px 24px; }
+    .layout { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; padding: 20px 24px; }
     .layout.sidebar-hidden { grid-template-columns: 1fr; }
     .layout.sidebar-hidden .sidebar { display: none; }
     .sidebar { position: sticky; top: 57px; max-height: calc(100vh - 73px); overflow: auto; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--sidebar-bg); }
@@ -159,7 +160,7 @@
 {%- endmacro %}
 
 {% macro ext_badge(ext) -%}
-{%- set cls = "badge-" ~ ext if ext in ["lbrn2","lbrn","stl","scad","3mf","svg","dxf"] else "badge-default" -%}
+{%- set cls = "badge-" ~ ext if ext in ["lbrn2","lbrn","stl","scad","3mf","svg","dxf","cdr"] else "badge-default" -%}
 <span class="badge {{ cls }}">{{ ext or "?" }}</span>
 {%- endmacro %}
 
@@ -422,7 +423,7 @@ function renderSubdirResults(q) {
   if (!matches.length) { section.style.display = 'none'; grid.innerHTML = ''; return; }
   section.style.display = '';
   grid.innerHTML = matches.map(function(f) {
-    var extCls = ['lbrn2','lbrn','stl','scad','3mf','svg','dxf'].includes(f.ext) ? 'badge-' + f.ext : 'badge-default';
+    var extCls = ['lbrn2','lbrn','stl','scad','3mf','svg','dxf','cdr'].includes(f.ext) ? 'badge-' + f.ext : 'badge-default';
     var thumb = f.thumb ? '<a href="' + f.link + '"><img class="thumb" src="' + f.thumb + '" alt="" /></a>'
                         : '<a href="' + f.link + '"><div class="no-thumb"><span class="badge ' + extCls + '">' + (f.ext || '?') + '</span></div></a>';
     var dirLink = '<a href="' + f.dir_link + '" style="color:var(--text-muted);font-size:12px;">' + f.dir_name + '/</a>';

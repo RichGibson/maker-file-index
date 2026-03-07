@@ -50,7 +50,7 @@
     .theme-opt input { cursor: pointer; accent-color: #0099ff; }
 
     /* Layout */
-    .layout { display: grid; grid-template-columns: 260px 1fr; gap: 18px; align-items: start; padding: 20px 24px; }
+    .layout { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; padding: 20px 24px; }
     .layout.sidebar-hidden { grid-template-columns: 1fr; }
     .layout.sidebar-hidden .sidebar { display: none; }
     .sidebar { position: sticky; top: 57px; max-height: calc(100vh - 73px); overflow: auto; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--sidebar-bg); }
@@ -92,6 +92,7 @@
     .badge-3mf  { background: #ede0ff; color: #6b21a8; }
     .badge-svg  { background: #ffe0f0; color: #b0006a; }
     .badge-dxf  { background: #e0f7f7; color: #0e6868; }
+    .badge-cdr  { background: #fde8f0; color: #990055; }
     .badge-default { background: #f0f0f0; color: #555; }
 
     /* Directory grid */
@@ -193,7 +194,7 @@
         <div class="stat">&#128196; <strong>{{ total_files }}</strong> files</div>
         <button class="stat-btn active" id="btn-all" onclick="clearFilter()">All</button>
         {% for t in type_stats %}
-        {%- set badge_cls = {"lightburn": "badge-lbrn2", "stl": "badge-stl", "openscad": "badge-scad", "3mf": "badge-3mf", "svg": "badge-svg", "dxf": "badge-dxf"}.get(t.key, "badge-default") %}
+        {%- set badge_cls = {"lightburn": "badge-lbrn2", "stl": "badge-stl", "openscad": "badge-scad", "3mf": "badge-3mf", "svg": "badge-svg", "dxf": "badge-dxf", "cdr": "badge-cdr"}.get(t.key, "badge-default") %}
         <button class="stat-btn" data-key="{{ t.key }}" onclick="toggleType(this)"><span class="badge {{ badge_cls }}">{{ t.label }}</span> <strong>{{ t.count }}</strong></button>
         {% endfor %}
       </div>
@@ -297,7 +298,7 @@ function applySortToGrid(grid) {
   updateSortButtons();
   applySortToGrid(document.getElementById('dir-grid'));
 })();
-var BADGE_CLS = {lbrn2:'badge-lbrn2',lbrn:'badge-lbrn',stl:'badge-stl',scad:'badge-scad','3mf':'badge-3mf',svg:'badge-svg',dxf:'badge-dxf'};
+var BADGE_CLS = {lbrn2:'badge-lbrn2',lbrn:'badge-lbrn',stl:'badge-stl',scad:'badge-scad','3mf':'badge-3mf',svg:'badge-svg',dxf:'badge-dxf',cdr:'badge-cdr'};
 
 function applyFilters() {
   var q = (document.getElementById('page-filter') ? document.getElementById('page-filter').value : '').toLowerCase().trim();
