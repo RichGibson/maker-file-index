@@ -1,6 +1,8 @@
 # dev README - my ugly work in progress notes.
 
-## next
+
+## next prompt
+❯ Lightburn files have a text type. Can you extract the text and put it on the lightburn detail pages.
 
 make the tree highlight the current directory, like:
 

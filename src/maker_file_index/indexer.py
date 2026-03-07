@@ -107,7 +107,7 @@ def scan(target: str, recursive: bool = True, debug_plugins: bool = False) -> li
         print("\nNo-plugin summary by extension:")
         for ext, n in sorted(no_plugin_count.items(), key=lambda kv: (-kv[1], kv[0])):
             print(f"  {ext}: {n}")
-    print("\nplugin summary by extension:")
+    print("\nYes plugin summary by extension:")
     for ext, n in sorted(plugin_count.items(), key=lambda kv: (-kv[1], kv[0])):
         print(f"  {ext}: {n}")
     
