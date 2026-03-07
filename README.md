@@ -1,6 +1,29 @@
 # maker-file-index
 
-Index maker project files and generate a Markdown and HTML catalog with thumbnails and notes.
+## File navigator for Maker files. Lightburn, STL, DXFs, etc.
+
+Programmers have figured out that version control matters. They don't have files like 'project_final.doc', 'project_final_2.doc', 'project_final_really.doc.'
+
+Version control, and project/file name management matter in other fields.
+
+I can't speak for all 'Makers,' but I know that my code repositories tend
+to be (reasonably) tidy, and my 3d printer, Laser Cutter, CNC Router, and other files
+tend to not reflect the learnings that I made in my software.
+
+This is a navigator for our design/machine control files. Run it and you can get an 
+index of all of the supported files, along with thumbnails and whatever metadata that
+I can pull out about that file.
+
+![List view of Maker-file-index](docs/maker-file-index.png)
+
+There is a list view, complete with the ability to choose dark mode, and to sort 
+on name or recent file access. You can hide or show the sidebar, and generally
+navigate around your files in convenient ways.
+
+![Detail view of Maker-file-index](docs/maker-file-index-detail.png)
+
+If you drill down to a file you get a detail view. Right now this works for Lightburn
+files. Support for other formats hopefully to come!
 
 ## Features
 
@@ -11,6 +34,7 @@ Index maker project files and generate a Markdown and HTML catalog with thumbnai
 - **3MF** — embedded preview image extraction
 - **SVG** — displayed directly as preview
 - **DXF** — thumbnail generation via ezdxf + matplotlib
+- **Corel Draw** (`.cdr`) — embedded thumbnail 
 
 ### HTML output
 
@@ -112,3 +136,4 @@ The `--debug` flag is useful when a file has a `Thumbnail Source` in the XML but
 | 3MF | `.3mf` | Extracted from zip archive |
 | SVG | `.svg` | Displayed directly |
 | DXF | `.dxf` | Rendered via ezdxf + matplotlib |
+| Corel Draw | `.cdr` | Embedded in file |
