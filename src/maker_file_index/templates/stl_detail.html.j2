@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ filename }}</title>
+  <script>
+    (function() {
+      var t = localStorage.getItem('mfi-theme') || 'auto';
+      var dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    })();
+  </script>
+  <style>
+    :root {
+      --bg: #f5f5f5; --surface: #ffffff; --surface-alt: #f3f3f3; --surface-hover: #e8e8e8;
+      --border: #dddddd; --border-light: #eeeeee;
+      --text: #222222; --text-dim: #444444; --text-muted: #888888; --text-faint: #aaaaaa; --text-faintest: #cccccc;
+      --nav-bg: #ffffff; --nav-border: #dddddd;
+      --input-bg: #ffffff; --input-border: #dddddd;
+      --shadow: rgba(0,0,0,0.09);
+    }
+    [data-theme="dark"] {
+      --bg: #18181b; --surface: #27272a; --surface-alt: #1e1e21; --surface-hover: #323236;
+      --border: #3f3f46; --border-light: #2e2e33;
+      --text: #f4f4f5; --text-dim: #d4d4d8; --text-muted: #a1a1aa; --text-faint: #71717a; --text-faintest: #52525b;
+      --nav-bg: #1c1c1f; --nav-border: #3f3f46;
+      --input-bg: #27272a; --input-border: #3f3f46;
+      --shadow: rgba(0,0,0,0.4);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: var(--bg); line-height: 1.4; color: var(--text); }
+
+    /* Top nav */
+    .topnav { background: var(--nav-bg); border-bottom: 1px solid var(--nav-border); padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .topnav-brand { font-weight: 700; font-size: 15px; text-decoration: none; color: var(--text); }
+    .topnav-right { position: relative; display: flex; align-items: center; gap: 10px; }
+    .settings-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--text-dim); }
+    .settings-btn:hover { background: var(--surface-alt); }
+    .settings-panel { display: none; position: absolute; right: 0; top: calc(100% + 8px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; box-shadow: 0 4px 20px var(--shadow); min-width: 180px; z-index: 200; }
+    .settings-panel.open { display: block; }
+    .settings-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 10px; }
+    .theme-opt { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); padding: 5px 0; cursor: pointer; }
+    .theme-opt input { cursor: pointer; accent-color: #0099ff; }
+
+    /* Breadcrumb bar */
+    .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 28px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .topbar a { text-decoration: none; color: var(--text-muted); font-size: 13px; }
+    .topbar a:hover { text-decoration: underline; }
+    .topbar .sep { color: var(--border); }
+    .topbar .filename { font-weight: 600; color: var(--text); font-size: 13px; }
+
+    .content { max-width: 960px; margin: 28px auto; padding: 0 24px; display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+
+    .thumb-col {}
+    .thumb-col img { width: 100%; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); }
+    .no-thumb { width: 100%; height: 260px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-alt); display: flex; align-items: center; justify-content: center; color: var(--text-faintest); font-size: 14px; }
+
+    .file-meta { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .file-meta table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .file-meta td { padding: 4px 0; vertical-align: top; }
+    .file-meta td:first-child { color: var(--text-muted); width: 110px; }
+    .file-meta td:last-child { font-weight: 500; }
+
+    .detail-col {}
+    .detail-col h1 { margin: 0 0 4px; font-size: 1.4rem; word-break: break-all; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; background: #e0f0ff; color: #004c99; margin-bottom: 16px; }
+
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+    .section h2 { margin: 0 0 12px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .meta-stat { background: var(--surface-alt); border-radius: 8px; padding: 10px 14px; }
+    .meta-stat .val { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+    .meta-stat .lbl { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+    .dim-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .dim-table th { text-align: left; padding: 5px 10px 5px 0; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+    .dim-table td { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--border-light); color: var(--text); }
+    .dim-table tr:last-child td { border-bottom: none; }
+    .dim-table td:not(:first-child) { font-weight: 500; font-variant-numeric: tabular-nums; }
+
+    .status-ok  { color: #1d7a1d; font-weight: 600; }
+    .status-warn { color: #b45309; font-weight: 600; }
+    .error-box { background: #fff0f0; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #b91c1c; }
+    [data-theme="dark"] .error-box { background: #2d1515; border-color: #7f1d1d; color: #fca5a5; }
+
+    @media (max-width: 680px) {
+      .content { grid-template-columns: 1fr; }
+      .meta-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a class="topnav-brand" href="{{ home_link }}">Maker File Index</a>
+  <div class="topnav-right">
+    <button class="settings-btn" onclick="toggleSettings(event)">&#9881; Settings</button>
+    <div class="settings-panel" id="settings-panel">
+      <div class="settings-title">Appearance</div>
+      <label class="theme-opt"><input type="radio" name="theme" value="light" onchange="setTheme('light')"> &#9728; Light</label>
+      <label class="theme-opt"><input type="radio" name="theme" value="dark"  onchange="setTheme('dark')">  &#9790; Dark</label>
+      <label class="theme-opt"><input type="radio" name="theme" value="auto"  onchange="setTheme('auto')">  &#128187; System</label>
+    </div>
+  </div>
+</nav>
+
+<div class="topbar">
+  {% for crumb in breadcrumbs %}
+    {% if not loop.last %}
+    <a href="{{ crumb.link }}">{{ crumb.name }}</a>
+    <span class="sep">›</span>
+    {% else %}
+    <span class="filename">{{ filename }}</span>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<div class="content">
+
+  <div class="thumb-col">
+    {% if thumbnail %}
+    <img src="{{ thumbnail }}" alt="{{ filename }}" />
+    {% else %}
+    <div class="no-thumb">No preview</div>
+    {% endif %}
+
+    <div class="file-meta">
+      <table>
+        <tr><td>Format</td><td>{{ details.format | capitalize if details.format else '—' }}</td></tr>
+        {% if details.header_text %}
+        <tr><td>Header</td><td>{{ details.header_text }}</td></tr>
+        {% endif %}
+        <tr><td>Modified</td><td>{{ modified }}</td></tr>
+        <tr><td>Size</td><td>{{ file_size }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="detail-col">
+    <h1>{{ filename }}</h1>
+    <span class="badge">STL</span>
+
+    {% if details.error %}
+    <div class="error-box">Could not parse STL: {{ details.error }}</div>
+    {% else %}
+
+    <div class="section">
+      <h2>Dimensions</h2>
+      <table class="dim-table">
+        <thead>
+          <tr><th>Axis</th><th>mm</th><th>inches</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>X (width)</td><td>{{ details.size_x_mm }}</td><td>{{ details.size_x_in }}</td></tr>
+          <tr><td>Y (depth)</td><td>{{ details.size_y_mm }}</td><td>{{ details.size_y_in }}</td></tr>
+          <tr><td>Z (height)</td><td>{{ details.size_z_mm }}</td><td>{{ details.size_z_in }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Mesh</h2>
+      <div class="meta-grid">
+        <div class="meta-stat">
+          <div class="val">{{ "{:,}".format(details.triangle_count) }}</div>
+          <div class="lbl">Triangles</div>
+        </div>
+        <div class="meta-stat">
+          <div class="val">{{ "{:,}".format(details.unique_vertices) }}</div>
+          <div class="lbl">Unique vertices</div>
+        </div>
+        <div class="meta-stat">
+          <div class="val">{{ "{:,}".format(details.unique_edges) }}</div>
+          <div class="lbl">Unique edges</div>
+        </div>
+        <div class="meta-stat">
+          <div class="val">{{ details.connected_components }}</div>
+          <div class="lbl">Connected components</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:13px;">
+        Manifold (watertight):
+        {% if details.is_manifold %}
+        <span class="status-ok">Yes</span>
+        {% else %}
+        <span class="status-warn">No — some edges are not shared by exactly 2 faces</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Surface area &amp; volume</h2>
+      <div class="meta-grid">
+        <div class="meta-stat">
+          <div class="val">{{ details.surface_area_mm2 }} mm²</div>
+          <div class="lbl">Surface area</div>
+        </div>
+        <div class="meta-stat">
+          <div class="val">{{ details.surface_area_cm2 }} cm²</div>
+          <div class="lbl">Surface area</div>
+        </div>
+        <div class="meta-stat">
+          <div class="val">{{ details.volume_mm3 }} mm³</div>
+          <div class="lbl">Volume</div>
+        </div>
+        <div class="meta-stat">
+          <div class="val">{{ details.volume_cm3 }} cm³</div>
+          <div class="lbl">Volume</div>
+        </div>
+      </div>
+    </div>
+
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function applyTheme(t) {
+  var dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+}
+function setTheme(t) { localStorage.setItem('mfi-theme', t); applyTheme(t); }
+function toggleSettings(e) {
+  e.stopPropagation();
+  document.getElementById('settings-panel').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  var p = document.getElementById('settings-panel');
+  if (p && !p.contains(e.target)) p.classList.remove('open');
+});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+  if ((localStorage.getItem('mfi-theme') || 'auto') === 'auto') applyTheme('auto');
+});
+(function() {
+  var saved = localStorage.getItem('mfi-theme') || 'auto';
+  var r = document.querySelector('input[name="theme"][value="' + saved + '"]');
+  if (r) r.checked = true;
+})();
+</script>
+</body>
+</html>

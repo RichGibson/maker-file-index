@@ -6,7 +6,7 @@ from pathlib import Path
 
 from maker_file_index.indexer import scan
 from maker_file_index.renderers.markdown import write_markdown_report, write_directory_pages
-from maker_file_index.renderers.html import write_directory_pages_html, write_landing_page_html, write_lightburn_detail_pages_html
+from maker_file_index.renderers.html import write_directory_pages_html, write_landing_page_html, write_lightburn_detail_pages_html, write_stl_detail_pages_html, write_3mf_detail_pages_html, write_svg_detail_pages_html
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -52,6 +52,9 @@ def main(argv: list[str] | None = None) -> int:
     write_directory_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
     write_landing_page_html(records, out_dir=out_path.parent, root_dir=root_dir)
     write_lightburn_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_stl_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_3mf_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_svg_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
 
     print(str(out_path))
     print(f"/dirs/index.md")

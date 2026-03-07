@@ -9,8 +9,14 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 from maker_file_index.indexer import group_by_directory
 from maker_file_index.plugins.lightburn import extract_lightburn_details
+from maker_file_index.plugins.stl import extract_stl_details
+from maker_file_index.plugins.three_mf import extract_3mf_details
+from maker_file_index.plugins.svg import extract_svg_details
 
 LIGHTBURN_EXTS = {"lbrn2", "lbrn"}
+STL_EXTS = {"stl"}
+THREE_MF_EXTS = {"3mf"}
+SVG_EXTS = {"svg"}
 
 
 def url_path(p: str) -> str:
@@ -226,8 +232,8 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
         for r in sorted(bucket.get("records", []), key=lambda r: r.path.name.lower()):
             ext = r.path.suffix.lower().lstrip(".")
 
-            # Detail page link for LightBurn files, raw file otherwise
-            if ext in LIGHTBURN_EXTS:
+            # Detail page link for LightBurn, STL, 3MF, and SVG files, raw file otherwise
+            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS:
                 rel = r.path.parent.relative_to(root_dir)
                 detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
                 file_link = url_path(os.path.relpath(detail_page, start=out_dir))
@@ -437,9 +443,9 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             except OSError:
                 file_mtime = 0
 
-            # For LightBurn files, link to a detail page instead of the raw file
+            # For LightBurn, STL, 3MF, and SVG files, link to a detail page instead of the raw file
             detail_link = ""
-            if ext in LIGHTBURN_EXTS:
+            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS:
                 rel = r.path.parent.relative_to(root_dir)
                 detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
                 detail_link = url_path(os.path.relpath(detail_page, start=page_path.parent))
@@ -515,7 +521,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             dir_link = url_path(os.path.relpath(sd_page, start=page_path.parent))
             for r in sd_bucket.get("records", []):
                 ext = r.path.suffix.lower().lstrip(".")
-                if ext in LIGHTBURN_EXTS:
+                if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS:
                     r_rel = r.path.parent.relative_to(root_dir)
                     dp = (dirs_root / r_rel / r.path.stem).with_suffix(".html")
                     flink = url_path(os.path.relpath(dp, start=page_path.parent))
@@ -567,6 +573,169 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             subdir_files_json=json.dumps(subdir_files),
             readme_content=dir_readme_content,
             readme_title=dir_readme_title,
+        )
+
+        page_path.write_text(rendered, encoding="utf-8")
+
+
+def write_stl_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
+    """
+    For each STL record, writes a detail page at:
+      out_dir/dirs/<relative_dir>/<stem>.html
+    """
+    out_dir = out_dir.expanduser().resolve()
+    root_dir = root_dir.expanduser().resolve()
+    dirs_root = out_dir / "dirs"
+
+    env = Environment(
+        loader=PackageLoader("maker_file_index", "templates"),
+        autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+    )
+    template = env.get_template("stl_detail.html.j2")
+
+    stl_records = [r for r in records if r.path.suffix.lower().lstrip(".") in STL_EXTS]
+
+    for r in stl_records:
+        rel = r.path.parent.relative_to(root_dir)
+        page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
+        page_path.parent.mkdir(parents=True, exist_ok=True)
+
+        details = extract_stl_details(r.path)
+
+        # Thumbnail relative to this page
+        thumbnail = ""
+        tp = r.thumbnail_path
+        if tp:
+            tp = Path(tp)
+            if str(tp) not in ("", ".", "./"):
+                if not tp.is_absolute():
+                    tp = (r.path.parent / tp).resolve()
+                if tp.exists() and tp.is_file():
+                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+
+        # File stats
+        try:
+            stat = r.path.stat()
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+            size_bytes = stat.st_size
+            if size_bytes >= 1024 * 1024:
+                file_size = f"{size_bytes / 1024 / 1024:.1f} MB"
+            elif size_bytes >= 1024:
+                file_size = f"{size_bytes / 1024:.1f} KB"
+            else:
+                file_size = f"{size_bytes} B"
+        except OSError:
+            modified = ""
+            file_size = ""
+
+        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+
+        # Breadcrumbs
+        crumb_parts = []
+        cur = r.path.parent
+        while cur != root_dir and cur.parent != cur:
+            crumb_parts.append(cur)
+            cur = cur.parent
+        crumb_parts.reverse()
+
+        breadcrumbs = []
+        for part in crumb_parts:
+            part_rel = part.relative_to(root_dir)
+            part_page = (dirs_root / part_rel / "index.html").resolve()
+            breadcrumbs.append({
+                "name": part.name,
+                "link": os.path.relpath(part_page, start=page_path.parent),
+            })
+        breadcrumbs.append({"name": r.path.name, "link": ""})
+
+        rendered = template.render(
+            filename=r.path.name,
+            home_link=home_link,
+            breadcrumbs=breadcrumbs,
+            thumbnail=thumbnail,
+            details=details,
+            modified=modified,
+            file_size=file_size,
+        )
+
+        page_path.write_text(rendered, encoding="utf-8")
+
+
+def write_3mf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
+    """
+    For each 3MF record, writes a detail page at:
+      out_dir/dirs/<relative_dir>/<stem>.html
+    """
+    out_dir = out_dir.expanduser().resolve()
+    root_dir = root_dir.expanduser().resolve()
+    dirs_root = out_dir / "dirs"
+
+    env = Environment(
+        loader=PackageLoader("maker_file_index", "templates"),
+        autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+    )
+    template = env.get_template("three_mf_detail.html.j2")
+
+    mf_records = [r for r in records if r.path.suffix.lower().lstrip(".") in THREE_MF_EXTS]
+
+    for r in mf_records:
+        rel = r.path.parent.relative_to(root_dir)
+        page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
+        page_path.parent.mkdir(parents=True, exist_ok=True)
+
+        details = extract_3mf_details(r.path)
+
+        thumbnail = ""
+        tp = r.thumbnail_path
+        if tp:
+            tp = Path(tp)
+            if str(tp) not in ("", ".", "./"):
+                if not tp.is_absolute():
+                    tp = (r.path.parent / tp).resolve()
+                if tp.exists() and tp.is_file():
+                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+
+        try:
+            stat = r.path.stat()
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+            size_bytes = stat.st_size
+            if size_bytes >= 1024 * 1024:
+                file_size = f"{size_bytes / 1024 / 1024:.1f} MB"
+            elif size_bytes >= 1024:
+                file_size = f"{size_bytes / 1024:.1f} KB"
+            else:
+                file_size = f"{size_bytes} B"
+        except OSError:
+            modified = ""
+            file_size = ""
+
+        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+
+        crumb_parts = []
+        cur = r.path.parent
+        while cur != root_dir and cur.parent != cur:
+            crumb_parts.append(cur)
+            cur = cur.parent
+        crumb_parts.reverse()
+
+        breadcrumbs = []
+        for part in crumb_parts:
+            part_rel = part.relative_to(root_dir)
+            part_page = (dirs_root / part_rel / "index.html").resolve()
+            breadcrumbs.append({
+                "name": part.name,
+                "link": os.path.relpath(part_page, start=page_path.parent),
+            })
+        breadcrumbs.append({"name": r.path.name, "link": ""})
+
+        rendered = template.render(
+            filename=r.path.name,
+            home_link=home_link,
+            breadcrumbs=breadcrumbs,
+            thumbnail=thumbnail,
+            details=details,
+            modified=modified,
+            file_size=file_size,
         )
 
         page_path.write_text(rendered, encoding="utf-8")
@@ -642,6 +811,86 @@ def write_lightburn_detail_pages_html(records, out_dir: Path, root_dir: Path) ->
                 "link": os.path.relpath(part_page, start=page_path.parent),
             })
         # Add the file itself as the last crumb (no link — shown as filename in template)
+        breadcrumbs.append({"name": r.path.name, "link": ""})
+
+        rendered = template.render(
+            filename=r.path.name,
+            home_link=home_link,
+            breadcrumbs=breadcrumbs,
+            thumbnail=thumbnail,
+            details=details,
+            modified=modified,
+            file_size=file_size,
+        )
+
+        page_path.write_text(rendered, encoding="utf-8")
+
+
+def write_svg_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
+    """
+    For each SVG record, writes a detail page at:
+      out_dir/dirs/<relative_dir>/<stem>.html
+    """
+    out_dir = out_dir.expanduser().resolve()
+    root_dir = root_dir.expanduser().resolve()
+    dirs_root = out_dir / "dirs"
+
+    env = Environment(
+        loader=PackageLoader("maker_file_index", "templates"),
+        autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+    )
+    template = env.get_template("svg_detail.html.j2")
+
+    svg_records = [r for r in records if r.path.suffix.lower().lstrip(".") in SVG_EXTS]
+
+    for r in svg_records:
+        rel = r.path.parent.relative_to(root_dir)
+        page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
+        page_path.parent.mkdir(parents=True, exist_ok=True)
+
+        details = extract_svg_details(r.path)
+
+        # SVG plugin sets thumbnail_path = the SVG file itself
+        thumbnail = ""
+        tp = r.thumbnail_path
+        if tp:
+            tp = Path(tp)
+            if str(tp) not in ("", ".", "./") and tp.exists() and tp.is_file():
+                if not tp.is_absolute():
+                    tp = (r.path.parent / tp).resolve()
+                thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+
+        try:
+            stat = r.path.stat()
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+            size_bytes = stat.st_size
+            if size_bytes >= 1024 * 1024:
+                file_size = f"{size_bytes / 1024 / 1024:.1f} MB"
+            elif size_bytes >= 1024:
+                file_size = f"{size_bytes / 1024:.1f} KB"
+            else:
+                file_size = f"{size_bytes} B"
+        except OSError:
+            modified = ""
+            file_size = ""
+
+        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+
+        crumb_parts = []
+        cur = r.path.parent
+        while cur != root_dir and cur.parent != cur:
+            crumb_parts.append(cur)
+            cur = cur.parent
+        crumb_parts.reverse()
+
+        breadcrumbs = []
+        for part in crumb_parts:
+            part_rel = part.relative_to(root_dir)
+            part_page = (dirs_root / part_rel / "index.html").resolve()
+            breadcrumbs.append({
+                "name": part.name,
+                "link": os.path.relpath(part_page, start=page_path.parent),
+            })
         breadcrumbs.append({"name": r.path.name, "link": ""})
 
         rendered = template.render(
