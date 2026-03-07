@@ -619,10 +619,12 @@ def write_stl_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
     stl_records = [r for r in records if r.path.suffix.lower().lstrip(".") in STL_EXTS]
 
     for i, r in enumerate(stl_records, 1):
-        print(f"  [{i}/{len(stl_records)}] {r.path.name}")
         rel = r.path.parent.relative_to(root_dir)
         page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
         page_path.parent.mkdir(parents=True, exist_ok=True)
+        if page_path.exists() and page_path.stat().st_mtime >= r.path.stat().st_mtime:
+            continue
+        print(f"  [{i}/{len(stl_records)}] {r.path.name}")
 
         details = extract_stl_details(r.path)
 
@@ -703,10 +705,12 @@ def write_3mf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
     mf_records = [r for r in records if r.path.suffix.lower().lstrip(".") in THREE_MF_EXTS]
 
     for i, r in enumerate(mf_records, 1):
-        print(f"  [{i}/{len(mf_records)}] {r.path.name}")
         rel = r.path.parent.relative_to(root_dir)
         page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
         page_path.parent.mkdir(parents=True, exist_ok=True)
+        if page_path.exists() and page_path.stat().st_mtime >= r.path.stat().st_mtime:
+            continue
+        print(f"  [{i}/{len(mf_records)}] {r.path.name}")
 
         details = extract_3mf_details(r.path)
 
@@ -784,10 +788,12 @@ def write_lightburn_detail_pages_html(records, out_dir: Path, root_dir: Path) ->
     lb_records = [r for r in records if r.path.suffix.lower().lstrip(".") in LIGHTBURN_EXTS]
 
     for i, r in enumerate(lb_records, 1):
-        print(f"  [{i}/{len(lb_records)}] {r.path.name}")
         rel = r.path.parent.relative_to(root_dir)
         page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
         page_path.parent.mkdir(parents=True, exist_ok=True)
+        if page_path.exists() and page_path.stat().st_mtime >= r.path.stat().st_mtime:
+            continue
+        print(f"  [{i}/{len(lb_records)}] {r.path.name}")
 
         details = extract_lightburn_details(r.path)
 
@@ -870,10 +876,12 @@ def write_svg_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
     svg_records = [r for r in records if r.path.suffix.lower().lstrip(".") in SVG_EXTS]
 
     for i, r in enumerate(svg_records, 1):
-        print(f"  [{i}/{len(svg_records)}] {r.path.name}")
         rel = r.path.parent.relative_to(root_dir)
         page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
         page_path.parent.mkdir(parents=True, exist_ok=True)
+        if page_path.exists() and page_path.stat().st_mtime >= r.path.stat().st_mtime:
+            continue
+        print(f"  [{i}/{len(svg_records)}] {r.path.name}")
 
         details = extract_svg_details(r.path)
 
@@ -952,10 +960,12 @@ def write_dxf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
     dxf_records = [r for r in records if r.path.suffix.lower().lstrip(".") in DXF_EXTS]
 
     for i, r in enumerate(dxf_records, 1):
-        print(f"  [{i}/{len(dxf_records)}] {r.path.name}")
         rel = r.path.parent.relative_to(root_dir)
         page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
         page_path.parent.mkdir(parents=True, exist_ok=True)
+        if page_path.exists() and page_path.stat().st_mtime >= r.path.stat().st_mtime:
+            continue
+        print(f"  [{i}/{len(dxf_records)}] {r.path.name}")
 
         details = extract_dxf_details(r.path)
 
@@ -1030,10 +1040,12 @@ def write_scad_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None
     scad_records = [r for r in records if r.path.suffix.lower().lstrip(".") in SCAD_EXTS]
 
     for i, r in enumerate(scad_records, 1):
-        print(f"  [{i}/{len(scad_records)}] {r.path.name}")
         rel = r.path.parent.relative_to(root_dir)
         page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
         page_path.parent.mkdir(parents=True, exist_ok=True)
+        if page_path.exists() and page_path.stat().st_mtime >= r.path.stat().st_mtime:
+            continue
+        print(f"  [{i}/{len(scad_records)}] {r.path.name}")
 
         details = extract_scad_details(r.path)
 
