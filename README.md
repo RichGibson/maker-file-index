@@ -54,11 +54,41 @@ and slicer/layer settings depending on the file type.
 - **SVG detail pages** — SVG rendered directly as preview, document dimensions and viewBox, authoring tool detection (Inkscape, Illustrator, etc.), path count, open/closed paths, total estimated path length, element type breakdown, named layers/groups, text content
 - **DXF detail pages** — thumbnail, AutoCAD version, dimensions, entity type breakdown, estimated path length by type, layer table (with ACI color swatches), entities-by-layer counts, text content
 
+## Download
+
+Pre-built executables (no Python required) are attached to each
+[GitHub Release](../../releases). Download the binary for your platform
+and run it directly:
+
+| Platform | File |
+|----------|------|
+| macOS | `maker-file-index` |
+| Windows | `maker-file-index.exe` |
+
+On macOS you may need to allow the binary in **System Settings → Privacy & Security**
+the first time you run it (Gatekeeper warning for unsigned binaries).
+
 ## Requirements
 
-- Python 3.9+
+### Python install
+
+- Python 3.12+
 - `numpy-stl`, `matplotlib`, `ezdxf` (installed automatically)
-- `openscad` (optional, for OpenSCAD thumbnails — install separately)
+
+### Optional: OpenSCAD thumbnails
+
+Thumbnail generation for `.scad` files requires the **OpenSCAD** application
+to be installed separately and available on your `PATH`.
+
+- **macOS**: download from [openscad.org](https://openscad.org/downloads.html),
+  or `brew install openscad`
+- **Windows**: download the installer from [openscad.org](https://openscad.org/downloads.html)
+  and ensure the install directory is added to `PATH`
+- **Linux**: `sudo apt install openscad` or equivalent
+
+If OpenSCAD is not installed, `.scad` files are still indexed and get a detail
+page — only thumbnail generation is skipped. All other file types generate
+thumbnails without any external tools.
 
 ## Quick start
 
@@ -218,6 +248,6 @@ The `--debug` flag is useful when a file has a `Thumbnail Source` in the XML but
 | STL | `.stl` | Rendered via numpy-stl + matplotlib | Yes |
 | 3MF | `.3mf` | Extracted from zip archive | Yes |
 | SVG | `.svg` | Displayed directly | Yes |
-| OpenSCAD | `.scad` | Rendered via OpenSCAD CLI | — |
+| OpenSCAD | `.scad` | Rendered via OpenSCAD CLI *(requires OpenSCAD installed separately)* | Yes |
 | DXF | `.dxf` | Rendered via ezdxf + matplotlib | Yes |
 | Corel Draw | `.cdr` | Embedded in file | — |
