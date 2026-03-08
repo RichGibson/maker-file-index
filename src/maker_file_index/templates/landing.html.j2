@@ -135,7 +135,11 @@
 <body>
 
 <nav class="topnav">
-  <a class="topnav-brand" href="index.html">Maker File Index</a>
+  <div style="display:flex;align-items:baseline;gap:12px;">
+    <a class="topnav-brand" href="index.html">Maker File Index</a>
+    {% if generated_at %}<span style="font-size:12px;color:var(--text-muted);">{{ generated_at }}</span>{% endif %}
+  </div>
+
   <div class="topnav-right">
     <button class="sidebar-toggle" id="sidebar-toggle-btn" onclick="toggleSidebar()">&#9776; Sidebar</button>
     <button class="settings-btn" onclick="toggleSettings(event)">&#9881; Settings</button>
@@ -187,8 +191,9 @@
 
   <main class="main">
     <div class="hero">
-      <h1>Maker File Index</h1>
+      <!-- <h1>Maker File Index</h1>
       <div class="subtitle">Generated: {{ generated_at }}</div>
+	  -->
       <div class="stats">
         <div class="stat">&#128194; <strong>{{ total_dirs }}</strong> directories</div>
         <div class="stat">&#128196; <strong>{{ total_files }}</strong> files</div>

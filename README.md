@@ -10,13 +10,13 @@ I can't speak for all 'Makers,' but I know that my code repositories tend
 to be (reasonably) tidy, and my 3d printer, Laser Cutter, CNC Router, and other files
 tend to not reflect the learnings that I made in my software.
 
-This is a navigator for our design/machine control files. Run it and you can get an 
+This is a navigator for our design/machine control files. Run it and you can get an
 index of all of the supported files, along with thumbnails and whatever metadata that
 I can pull out about that file.
 
 ![List view of Maker-file-index](docs/maker-file-index.png)
 
-There is a list view, complete with the ability to choose dark mode, and to sort 
+There is a list view, complete with the ability to choose dark mode, and to sort
 on name or recent file access. You can hide or show the sidebar, and generally
 navigate around your files in convenient ways.
 
@@ -24,35 +24,6 @@ navigate around your files in convenient ways.
 
 If you drill down to a file you get a detail view with rich metadata, geometry stats,
 and slicer/layer settings depending on the file type.
-
-## Features
-
-- Plugin-based architecture — easy to extend with new file types
-- **LightBurn** (`.lbrn2`, `.lbrn`) — embedded thumbnail and notes extraction
-- **STL** — thumbnail generation via numpy-stl + matplotlib
-- **OpenSCAD** (`.scad`) — thumbnail generation via OpenSCAD CLI
-- **3MF** — embedded preview image extraction
-- **SVG** — displayed directly as preview
-- **DXF** — thumbnail generation via ezdxf + matplotlib
-- **Corel Draw** (`.cdr`) — embedded thumbnail 
-
-### HTML output
-
-- Landing page with all top-level directories, sorted newest first
-- Per-directory pages with thumbnail grid
-- Sidebar with full directory tree navigation, current page highlighted, scroll position preserved
-- Clickable file type stat buttons on landing page (show count, filter on click)
-- File type filter buttons in sidebar on directory pages
-- Text search box to filter cards by name
-- Breadcrumb navigation
-- Colored file type badges on every card
-- Notes snippet displayed on file cards
-- Error badge on cards where thumbnail generation failed
-- **LightBurn detail pages** — thumbnail, file metadata (machine, LightBurn version, material height, mirror), notes, laser layer table (color-coded, speed, power, passes, output, priority), shape counts, shapes per layer, embedded text strings, estimated cut time with per-layer breakdown
-- **STL detail pages** — dimensions (mm + inches), mesh stats (triangles, vertices, edges, connected components), manifold check, surface area and volume
-- **3MF detail pages** — dimensions, mesh stats, manifold check, surface area and volume, package metadata (title, author, application), object/part names, slicer settings table (printer model, layer height, infill, supports, speeds — when present)
-- **SVG detail pages** — SVG rendered directly as preview, document dimensions and viewBox, authoring tool detection (Inkscape, Illustrator, etc.), path count, open/closed paths, total estimated path length, element type breakdown, named layers/groups, text content
-- **DXF detail pages** — thumbnail, AutoCAD version, dimensions, entity type breakdown, estimated path length by type, layer table (with ACI color swatches), entities-by-layer counts, text content
 
 ## Download
 
@@ -67,6 +38,36 @@ and run it directly:
 
 On macOS you may need to allow the binary in **System Settings → Privacy & Security**
 the first time you run it (Gatekeeper warning for unsigned binaries).
+
+## Features
+
+- Plugin-based architecture — easy to extend with new file types
+- **LightBurn** (`.lbrn2`, `.lbrn`) — embedded thumbnail and notes extraction
+- **STL** — thumbnail generation via numpy-stl + matplotlib
+- **OpenSCAD** (`.scad`) — thumbnail generation via OpenSCAD CLI
+- **3MF** — embedded preview image extraction
+- **SVG** — displayed directly as preview
+- **DXF** — thumbnail generation via ezdxf + matplotlib
+- **Corel Draw** (`.cdr`) — embedded thumbnail
+
+### HTML output
+
+- Landing page with all top-level directories, sorted newest first
+- Per-directory pages with thumbnail grid
+- Sidebar with full directory tree navigation, current page highlighted, scroll position preserved
+- Clickable file type stat buttons on landing page (show count, filter on click)
+- File type filter buttons in sidebar on directory pages
+- Text search box to filter cards by name
+- Breadcrumb navigation
+- Colored file type badges on every card
+- Notes snippet displayed on file cards
+- Error badge on cards where thumbnail generation failed
+- **LightBurn detail pages** — thumbnail, file metadata (machine, LightBurn version, material height, mirror), notes, laser layer table (color-coded, speed, power, passes, output, priority), shape counts, shapes per layer, embedded text strings, estimated cut time with per-layer vector/raster breakdown
+- **STL detail pages** — dimensions (mm + inches), mesh stats (triangles, vertices, edges, connected components), manifold check, surface area and volume
+- **3MF detail pages** — dimensions, mesh stats, manifold check, surface area and volume, package metadata (title, author, application), object/part names, slicer settings table (printer model, layer height, infill, supports, speeds — when present)
+- **SVG detail pages** — SVG rendered directly as preview, document dimensions and viewBox, authoring tool detection (Inkscape, Illustrator, etc.), path count, open/closed paths, total estimated path length, element type breakdown, named layers/groups, text content
+- **DXF detail pages** — thumbnail, AutoCAD version, dimensions, entity type breakdown, estimated path length by type, layer table (with ACI color swatches), entities-by-layer counts, text content
+- **OpenSCAD detail pages** — thumbnail, file stats (lines, size), module definitions, parameter assignments, includes, primitive/transform/CSG counts, embedded comments and strings
 
 ## Requirements
 
@@ -133,13 +134,17 @@ Make file paths in the report relative to this directory.
 
 Show which plugin handles each file.
 
+### `--version`
+
+Print the version and exit.
+
 ## Utilities
 
 ### Installed CLI tools
 
 ```bash
 lightburn-extract-notes <filename>   # Extract notes from a LightBurn file
-lightburn-extract-text <filename>    # Extract text from a LightBurn file
+lightburn-extract-text <filename>    # Extract text strings from a LightBurn file
 ```
 
 ### scripts/lightburn_extract.py
@@ -149,16 +154,26 @@ Extracts detailed information from a LightBurn file: metadata, notes, text strin
 ```bash
 python scripts/lightburn_extract.py file.lbrn2
 python scripts/lightburn_extract.py file.lbrn2 --json
-python scripts/lightburn_extract.py file.lbrn2 --overhead-factor 1.25
 ```
 
 | Option | Description |
 |--------|-------------|
 | `filename` | Path to `.lbrn2` or `.lbrn` file |
 | `--json` | Emit structured JSON instead of a human-readable report |
-| `--overhead-factor FLOAT` | Overhead multiplier for travel moves (default: `1.15`) |
 
-Time estimate notes: line geometry is measured directly; bezier curves are approximated from control points; non-output layers are excluded; travel moves and acceleration are not modeled.
+### scripts/scad_extract.py
+
+Extracts structure and metadata from an OpenSCAD file: module definitions, parameter assignments, includes/uses, primitive and CSG operation counts, custom module calls, comments, and embedded strings.
+
+```bash
+python scripts/scad_extract.py file.scad
+python scripts/scad_extract.py file.scad --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `filename` | Path to `.scad` file |
+| `--json` | Emit structured JSON instead of plain text |
 
 ### scripts/stl_extract.py
 
