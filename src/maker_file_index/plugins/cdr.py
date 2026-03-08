@@ -73,7 +73,9 @@ class CDRPlugin:
         return path.suffix.lower() in self.extensions
 
     def index(self, path: Path) -> IndexRecord:
-        thumb_path = thumbnail_path_for(path)
+        thumb_root = getattr(self, "thumb_root", None)
+        scan_root = getattr(self, "scan_root", None)
+        thumb_path = thumbnail_path_for(path, thumb_root=thumb_root, scan_root=scan_root)
         error = ""
 
         if not thumbnail_is_fresh(path, thumb_path):

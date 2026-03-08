@@ -24,7 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     default=".",
     help="File, directory, or glob (quote globs)",
 )
-    parser.add_argument("-o", "--output", default="lightburn_notes.md", help="Output Markdown filename.")
+    parser.add_argument("-o", "--output-dir", default="maker_file_data", help="Output directory for all generated files (default: maker_file_data)")
+    parser.add_argument("--alongside-source", action="store_true", help="Write thumbnails alongside source files instead of in the output directory.")
     parser.add_argument(
         "--no-recursive",
         action="store_true",
@@ -43,52 +44,60 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     recursive = not args.no_recursive
-    #records = scan(args.target, recursive=recursive)
-    records = scan(args.target, recursive=recursive, debug_plugins=args.debug_plugins)
+    root_dir = Path(args.target).expanduser().resolve() if Path(args.target).expanduser().is_dir() else Path(args.target).expanduser().resolve().parent
+    root_for_rel = Path(args.relpath_root).resolve() if args.relpath_root else None
+
+    alongside_source = args.alongside_source
+    if alongside_source:
+        output_dir = None  # thumbnails go alongside source files
+    else:
+        output_dir = Path(args.output_dir).expanduser().resolve()
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    out_dir = output_dir if output_dir else root_dir
+    notes_path = out_dir / "maker_file_notes.md"
+
+    records = scan(args.target, recursive=recursive, debug_plugins=args.debug_plugins, output_dir=output_dir)
 
     if not records:
         print(f"ERROR: No LightBurn files found for target: {args.target}", file=sys.stderr)
         return 2
 
-    out_path = Path(args.output).expanduser().resolve()
-    root_for_rel = Path(args.relpath_root).resolve() if args.relpath_root else None
-    root_dir = Path(args.target).expanduser().resolve() if Path(args.target).expanduser().is_dir() else Path(args.target).expanduser().resolve().parent
-
     print(f"\nWriting markdown report ({len(records)} files)...")
-    write_markdown_report(records, out_path, root_for_rel=root_for_rel, root_dir=root_dir)
-    write_directory_pages(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_markdown_report(records, notes_path, root_for_rel=root_for_rel, root_dir=root_dir)
+    write_directory_pages(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing markdown detail pages...")
-    write_detail_pages_markdown(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_detail_pages_markdown(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing HTML directory pages...")
-    write_directory_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_directory_pages_html(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing landing page...")
-    write_landing_page_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_landing_page_html(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing LightBurn detail pages...")
-    write_lightburn_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_lightburn_detail_pages_html(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing STL detail pages...")
-    write_stl_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_stl_detail_pages_html(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing 3MF detail pages...")
-    write_3mf_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_3mf_detail_pages_html(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing SVG detail pages...")
-    write_svg_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_svg_detail_pages_html(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing DXF detail pages...")
-    write_dxf_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_dxf_detail_pages_html(records, out_dir=out_dir, root_dir=root_dir)
 
     print("Writing OpenSCAD detail pages...")
-    write_scad_detail_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)
+    write_scad_detail_pages_html(records, out_dir=out_dir, root_dir=root_dir)
 
     print("\nDone.")
-    print(str(out_path))
-    print(f"/dirs/index.md")
-    print(f"/index.html")
+    print(str(notes_path))
+    print(str(out_dir / "dirs" / "index.md"))
+    print(str(out_dir / "index.html"))
     return 0
 
 

@@ -200,7 +200,7 @@ def extract_thumbnail(input_path: Path, output_path: Path | None = None, overwri
     output_path.write_bytes(blob)
     return output_path
 
-def extract_notes_and_thumbnail(path: Path) -> IndexRecord:
+def extract_notes_and_thumbnail(path: Path, *, thumb_root: Path | None = None, scan_root: Path | None = None) -> IndexRecord:
     """
     Returns Notes (blank if missing) and writes/returns the extracted thumbnail path if present.
     Supports:
@@ -224,7 +224,7 @@ def extract_notes_and_thumbnail(path: Path) -> IndexRecord:
 
         thumb_path = Path("")
         try:
-            expected = thumbnail_path_for(path)
+            expected = thumbnail_path_for(path, thumb_root=thumb_root, scan_root=scan_root)
             if not thumbnail_is_fresh(path, expected):
                 extract_thumbnail(path, output_path=expected)
             thumb_path = expected
@@ -710,7 +710,9 @@ class LightBurnPlugin:
         return is_likely_lightburn_project(path)
 
     def index(self, path: Path) -> IndexRecord:
-        info = extract_notes_and_thumbnail(path )
+        thumb_root = getattr(self, "thumb_root", None)
+        scan_root_attr = getattr(self, "scan_root", None)
+        info = extract_notes_and_thumbnail(path, thumb_root=thumb_root, scan_root=scan_root_attr)
         return IndexRecord(
             path=info.path,
             directory=path.parent,

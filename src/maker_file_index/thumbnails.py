@@ -14,11 +14,27 @@ def thumbnail_is_fresh(source_path: Path, thumb_path: Path) -> bool:
     except OSError:
         return False
 
-def thumbnail_path_for(source_path: Path, *, suffix: str = "_thumbnail.png") -> Path:
+def thumbnail_path_for(
+    source_path: Path,
+    *,
+    suffix: str = "_thumbnail.png",
+    thumb_root: Path | None = None,
+    scan_root: Path | None = None,
+) -> Path:
     """
     Standard thumbnail naming:
       foo.ext -> foo_thumbnail.png
+
+    When thumb_root and scan_root are both provided, the thumbnail is placed
+    under thumb_root mirroring the source directory structure:
+      thumb_root / rel_dir / foo_thumbnail.png
     """
+    if thumb_root is not None and scan_root is not None:
+        try:
+            rel_dir = source_path.parent.relative_to(scan_root)
+        except ValueError:
+            rel_dir = Path(source_path.parent.name)
+        return thumb_root / rel_dir / f"{source_path.stem}{suffix}"
     return source_path.with_name(f"{source_path.stem}{suffix}")
 
 

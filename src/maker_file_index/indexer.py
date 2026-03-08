@@ -30,7 +30,7 @@ def group_by_directory(records):
 
     return grouped
 
-def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
+def resolve_inputs(target: str, recursive: bool = True, exclude_dir: Path | None = None) -> list[Path]:
     """
     - File: include only if it looks like LightBurn
     - Dir: recurse by default (your desired behavior)
@@ -39,7 +39,7 @@ def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
     p = Path(target).expanduser()
 
     if p.exists() and p.is_file():
-        return [p.resolve()] 
+        return [p.resolve()]
         #return [p.resolve()] if is_likely_lightburn_project(p) else []
 
     if p.exists() and p.is_dir():
@@ -50,6 +50,7 @@ def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
             and not x.name.endswith("_thumbnail.png")
             and not x.name.startswith("._")
             and "__MACOSX" not in x.parts
+            and (exclude_dir is None or not x.resolve().is_relative_to(exclude_dir))
         ]
         return sorted({f.resolve() for f in files}, key=lambda x: str(x).lower())
 
@@ -62,6 +63,7 @@ def resolve_inputs(target: str, recursive: bool = True) -> list[Path]:
         and not Path(m).name.endswith("_thumbnail.png")
         and not Path(m).name.startswith("._")
         and "__MACOSX" not in Path(m).parts
+        and (exclude_dir is None or not Path(m).resolve().is_relative_to(exclude_dir))
     ]
     #files = [Path(m).expanduser() for m in matches if Path(m).is_file()]
     #files = [f for f in files if is_likely_lightburn_project(f)]
@@ -79,8 +81,9 @@ def md_escape_cell(text: str) -> str:
 
 
 
-def scan(target: str, recursive: bool = True, debug_plugins: bool = False) -> list[IndexRecord]:
-    files = resolve_inputs(target, recursive=recursive)
+def scan(target: str, recursive: bool = True, debug_plugins: bool = False, output_dir: Path | None = None) -> list[IndexRecord]:
+    exclude_dir = output_dir.resolve() if output_dir else None
+    files = resolve_inputs(target, recursive=recursive, exclude_dir=exclude_dir)
     plugins = load_plugins()
     no_plugin_count = Counter()
     plugin_count = Counter()
@@ -88,10 +91,12 @@ def scan(target: str, recursive: bool = True, debug_plugins: bool = False) -> li
 
     t = Path(target).expanduser()
     scan_root = t.resolve() if t.is_dir() else t.resolve().parent
+    thumb_root = (output_dir.resolve() / "dirs") if output_dir else None
 
     for p in files:
         for plugin in plugins:
             plugin.scan_root = scan_root
+            plugin.thumb_root = thumb_root
             if plugin.can_handle(p):
                 if debug_plugins:
                     print(f"[plugin:{plugin.name}] {p}")

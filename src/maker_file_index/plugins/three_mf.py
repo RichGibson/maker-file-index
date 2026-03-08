@@ -238,7 +238,9 @@ class ThreeMFPlugin:
         return path.suffix.lower() in self.extensions
 
     def index(self, path: Path) -> IndexRecord:
-        thumb_path = thumbnail_path_for(path)
+        thumb_root = getattr(self, "thumb_root", None)
+        scan_root = getattr(self, "scan_root", None)
+        thumb_path = thumbnail_path_for(path, thumb_root=thumb_root, scan_root=scan_root)
         error = ""
 
         if not thumbnail_is_fresh(path, thumb_path):
@@ -252,7 +254,6 @@ class ThreeMFPlugin:
 
                     if preview_candidates:
                         preview_candidates.sort(key=lambda x: ("plate" not in x.lower(), x))
-                        scan_root = getattr(self, "scan_root", None)
                         rel = path.relative_to(scan_root) if scan_root else Path(path.parent.name) / path.name
                         print(f"Extracting thumbnail for {rel}")
                         data = z.read(preview_candidates[0])
