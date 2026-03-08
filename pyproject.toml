@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maker-file-index"
-version = "0.1.0"
+version = "0.1.1"
 description = "Index maker files (LightBurn first) with thumbnails and notes."
 readme = "README.md"
 requires-python = ">=3.12"
