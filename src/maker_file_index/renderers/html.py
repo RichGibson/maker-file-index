@@ -141,22 +141,32 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
 
     grouped = group_by_directory(records)
 
-    # Top-level dirs only (immediate children of root_dir), newest first
-    def _dir_mtime(d: Path) -> float:
-        recs = grouped[d].get("records", [])
+    # Top-level dirs: immediate children of root_dir that contain any files anywhere
+    # in their subtree. Walk up from every directory in grouped to find them.
+    top_dirs_set: set[Path] = set()
+    for d in grouped:
+        cur = d
+        while cur != root_dir and cur.parent != cur:
+            if cur.parent == root_dir:
+                top_dirs_set.add(cur)
+                break
+            cur = cur.parent
+
+    def _subtree_mtime(d: Path) -> float:
         mtimes = []
-        for r in recs:
+        for dir_path, bucket in grouped.items():
             try:
-                mtimes.append(r.path.stat().st_mtime)
-            except OSError:
-                pass
+                dir_path.relative_to(d)
+            except ValueError:
+                continue
+            for r in bucket.get("records", []):
+                try:
+                    mtimes.append(r.path.stat().st_mtime)
+                except OSError:
+                    pass
         return max(mtimes) if mtimes else 0.0
 
-    top_dirs = sorted(
-        [d for d in grouped if d.parent == root_dir],
-        key=_dir_mtime,
-        reverse=True,
-    )
+    top_dirs = sorted(top_dirs_set, key=_subtree_mtime, reverse=True)
 
     dirs_root = out_dir / "dirs"
 
@@ -178,14 +188,21 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
 
     dir_cards = []
     for d in top_dirs:
-        bucket = grouped[d]
         child_page = page_path_for_dir(d)
         link = os.path.relpath(child_page, start=out_dir)
 
+        # Find first thumbnail from anywhere in the subtree
         first_thumb = ""
-        for r in bucket.get("records", []):
-            if r.thumbnail_path and Path(r.thumbnail_path).exists():
-                first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=out_dir))
+        for dir_path, bucket in sorted(grouped.items(), key=lambda kv: str(kv[0])):
+            try:
+                dir_path.relative_to(d)
+            except ValueError:
+                continue
+            for r in bucket.get("records", []):
+                if r.thumbnail_path and Path(r.thumbnail_path).exists():
+                    first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=out_dir))
+                    break
+            if first_thumb:
                 break
 
         agg_ext_counts = _subtree_ext_counts(d)
@@ -196,7 +213,7 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
             "first_thumb": first_thumb,
             "counts": _format_ext_counts(agg_ext_counts),
             "labels": _exts_to_labels(dir_exts),
-            "mtime": int(_dir_mtime(d)),
+            "mtime": int(_subtree_mtime(d)),
         })
 
     # Summary stats
