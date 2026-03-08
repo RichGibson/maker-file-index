@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import argparse
 import sys
+from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
+
+try:
+    __version__ = version("maker-file-index")
+except PackageNotFoundError:
+    __version__ = "unknown"
 
 from maker_file_index.indexer import scan
 from maker_file_index.renderers.markdown import write_markdown_report, write_directory_pages
@@ -11,6 +17,7 @@ from maker_file_index.renderers.html import write_directory_pages_html, write_la
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Index maker files (LightBurn first) with thumbnails and notes.")
+    parser.add_argument("--version", action="version", version=f"maker-file-index {__version__}")
     parser.add_argument(
     "target",
     nargs="?",
