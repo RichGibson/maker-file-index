@@ -5,7 +5,7 @@ import binascii
 import math
 import re
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from maker_file_index.plugins.base import FilePlugin
 from maker_file_index.model import IndexRecord
@@ -257,6 +257,304 @@ def extract_notes_and_thumbnail(path: Path) -> IndexRecord:
         )
 
 
+# ---------------------------------------------------------------------------
+# Improved time estimation (ported from scripts/lightburn_estimate_time_3.py)
+# ---------------------------------------------------------------------------
+
+_VERT_RE2 = re.compile(r"V(?P<x>-?\d+(?:\.\d+)?)\s+(?P<y>-?\d+(?:\.\d+)?)")
+_MATRIX_RE = re.compile(
+    r"^\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+"
+    r"(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$"
+)
+
+# Defaults for estimation parameters
+_TRAVEL_SPEED = 200.0        # mm/s
+_PATH_OVERHEAD = 0.12        # seconds per path start
+_CORNER_OVERHEAD = 0.03      # seconds per sharp corner
+_SHORT_SEG_THRESHOLD = 3.0   # mm — segments shorter than this are penalised
+_SHORT_SEG_PENALTY = 0.45    # penalty factor for short segments
+_RASTER_EFFICIENCY = 0.70    # fraction of nominal speed used for raster
+
+
+@dataclass
+class _CutSetting:
+    index: int
+    name: str
+    layer_type: str
+    speed: float | None
+    num_passes: int = 1
+    do_output: bool = True
+    interval: float | None = None
+    overscan: float | None = None
+    scan_opt: str | None = None
+
+
+@dataclass
+class _VectorStats:
+    cut_length_mm: float = 0.0
+    travel_mm: float = 0.0
+    num_paths: int = 0
+    num_corners: int = 0
+    time_seconds: float = 0.0
+
+
+@dataclass
+class _RasterStats:
+    scan_gap_mm: float = 0.1
+    overscan_mm: float = 0.0
+    scan_lines: int = 0
+    scan_distance_mm: float = 0.0
+    time_seconds: float = 0.0
+    num_objects: int = 0
+
+
+@dataclass
+class _LayerEst:
+    cut_index: int
+    name: str
+    layer_type: str
+    speed: float | None
+    num_passes: int
+    do_output: bool
+    vector: _VectorStats = field(default_factory=_VectorStats)
+    raster: _RasterStats = field(default_factory=_RasterStats)
+
+
+def _lb_try_float(v: str | None) -> float | None:
+    try:
+        return float(v) if v is not None else None
+    except ValueError:
+        return None
+
+
+def _lb_try_int(v: str | None, default: int = 0) -> int:
+    try:
+        return int(float(v)) if v is not None else default
+    except ValueError:
+        return default
+
+
+def _lb_parse_cut_settings(root: ET.Element) -> dict[int, _CutSetting]:
+    settings: dict[int, _CutSetting] = {}
+    for cut in root.findall("CutSetting"):
+        values = {child.tag: child.attrib.get("Value") for child in cut}
+        idx = _lb_try_int(values.get("index"), -1)
+        if idx < 0:
+            continue
+        settings[idx] = _CutSetting(
+            index=idx,
+            name=values.get("name") or f"Layer {idx}",
+            layer_type=cut.attrib.get("type", "Cut"),
+            speed=_lb_try_float(values.get("speed")),
+            num_passes=max(1, _lb_try_int(values.get("numPasses"), 1)),
+            do_output=values.get("doOutput", "1") != "0",
+            interval=_lb_try_float(values.get("interval")),
+            overscan=_lb_try_float(values.get("overscan")),
+            scan_opt=values.get("scanOpt"),
+        )
+    return settings
+
+
+def _lb_parse_points(elem: ET.Element) -> list[tuple[float, float]]:
+    vert_text = elem.findtext("VertList") or ""
+    xform_text = (elem.findtext("XForm") or "").strip()
+    m = _MATRIX_RE.match(xform_text)
+    if m:
+        a, b, c, d, tx, ty = (float(g) for g in m.groups())
+    else:
+        a, b, c, d, tx, ty = 1.0, 0.0, 0.0, 1.0, 0.0, 0.0
+    points = []
+    for match in _VERT_RE2.finditer(vert_text):
+        x, y = float(match.group("x")), float(match.group("y"))
+        points.append((a * x + c * y + tx, b * x + d * y + ty))
+    return points
+
+
+def _lb_same_pt(p1: tuple, p2: tuple, tol: float = 1e-6) -> bool:
+    return abs(p1[0] - p2[0]) <= tol and abs(p1[1] - p2[1]) <= tol
+
+
+def _lb_path_closed(shape: ET.Element, pts: list) -> bool:
+    prim = (shape.findtext("PrimList") or "").lower()
+    if "closed" in prim:
+        return True
+    return len(pts) >= 2 and _lb_same_pt(pts[0], pts[-1])
+
+
+def _lb_polyline_length(pts: list, closed: bool) -> float:
+    if len(pts) < 2:
+        return 0.0
+    total = sum(math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
+    if closed and not _lb_same_pt(pts[0], pts[-1]):
+        total += math.dist(pts[-1], pts[0])
+    return total
+
+
+def _lb_count_corners(pts: list, closed: bool, threshold: float = 150.0) -> int:
+    if len(pts) < 3:
+        return 0
+    count = 0
+    ring = pts[:-1] if (closed and _lb_same_pt(pts[0], pts[-1])) else pts
+    n = len(ring)
+    indices = range(n) if closed else range(1, n - 1)
+    for i in indices:
+        prev = ring[(i - 1) % n]
+        curr = ring[i]
+        nxt = ring[(i + 1) % n]
+        ax, ay = curr[0] - prev[0], curr[1] - prev[1]
+        bx, by = nxt[0] - curr[0], nxt[1] - curr[1]
+        ma, mb = math.hypot(ax, ay), math.hypot(bx, by)
+        if ma < 1e-9 or mb < 1e-9:
+            continue
+        dot = max(-1.0, min(1.0, (ax * bx + ay * by) / (ma * mb)))
+        if math.degrees(math.acos(dot)) < threshold:
+            count += 1
+    return count
+
+
+def _lb_vector_path_time(pts: list, closed: bool, speed: float) -> tuple[float, int]:
+    pairs = list(zip(pts, pts[1:]))
+    if closed and not _lb_same_pt(pts[0], pts[-1]):
+        pairs.append((pts[-1], pts[0]))
+    total, short = 0.0, 0
+    for p1, p2 in pairs:
+        seg = math.dist(p1, p2)
+        if seg <= 0:
+            continue
+        eff = speed * _SHORT_SEG_PENALTY if seg < _SHORT_SEG_THRESHOLD else speed
+        total += seg / max(eff, 1e-9)
+        if seg < _SHORT_SEG_THRESHOLD:
+            short += 1
+    return total, short
+
+
+def _lb_is_raster(setting: _CutSetting) -> bool:
+    if setting.interval is not None or setting.scan_opt or setting.overscan is not None:
+        return True
+    n = setting.name.lower()
+    if any(k in n for k in ("interval", "scan", "fill")):
+        return True
+    t = setting.layer_type.lower()
+    return any(k in t for k in ("fill", "image", "scan"))
+
+
+def _lb_raster_efficiency(setting: _CutSetting) -> float:
+    scan_opt = (setting.scan_opt or "").strip().lower()
+    if scan_opt == "individual":
+        return min(_RASTER_EFFICIENCY, 0.60)
+    if scan_opt in {"bi", "bidirectional"}:
+        return max(_RASTER_EFFICIENCY, 0.75)
+    return _RASTER_EFFICIENCY
+
+
+def _lb_bbox(pts: list) -> tuple | None:
+    if not pts:
+        return None
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def _lb_bbox_union(a: tuple | None, b: tuple | None) -> tuple | None:
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return (min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3]))
+
+
+def _lb_estimate_job(root: ET.Element) -> dict[int, _LayerEst]:
+    settings = _lb_parse_cut_settings(root)
+    estimates: dict[int, _LayerEst] = {}
+    raster_bboxes: dict[int, tuple | None] = {}
+    prev_end: tuple | None = None
+
+    def _get_layer(setting: _CutSetting) -> _LayerEst:
+        if setting.index not in estimates:
+            estimates[setting.index] = _LayerEst(
+                cut_index=setting.index,
+                name=setting.name,
+                layer_type=setting.layer_type,
+                speed=setting.speed,
+                num_passes=setting.num_passes,
+                do_output=setting.do_output,
+            )
+        return estimates[setting.index]
+
+    for shape in root.iter("Shape"):
+        ci = _lb_try_int(shape.attrib.get("CutIndex"), -1)
+        if ci < 0:
+            continue
+        setting = settings.get(ci) or _CutSetting(index=ci, name=f"Layer {ci}", layer_type="Unknown", speed=None)
+        if not setting.do_output:
+            continue
+
+        speed = setting.speed  # LightBurn stores speed in mm/s
+        shape_type = (shape.attrib.get("Type") or "").strip()
+        raster_like = _lb_is_raster(setting) or shape_type in {"Text", "Image"}
+
+        if raster_like:
+            backup = shape.find("BackupPath")
+            pts = _lb_parse_points(backup) if backup is not None else []
+            if not pts:
+                pts = _lb_parse_points(shape)
+            bbox = _lb_bbox(pts)
+            if bbox is not None:
+                raster_bboxes[ci] = _lb_bbox_union(raster_bboxes.get(ci), bbox)
+                if speed:
+                    layer = _get_layer(setting)
+                    scan_gap = setting.interval if setting.interval is not None else 0.1
+                    overscan = setting.overscan if setting.overscan is not None else 0.0
+                    eff = _lb_raster_efficiency(setting)
+                    min_x, min_y, max_x, max_y = bbox
+                    w, h = max(0.0, max_x - min_x), max(0.0, max_y - min_y)
+                    lines = max(1, math.ceil(h / max(scan_gap, 1e-9)))
+                    dist = lines * (w + 2.0 * overscan)
+                    layer.raster.num_objects += 1
+                    layer.raster.scan_lines += lines
+                    layer.raster.scan_distance_mm += dist
+                    layer.raster.scan_gap_mm = scan_gap
+                    layer.raster.overscan_mm = overscan
+            continue
+
+        if shape_type != "Path":
+            continue
+        pts = _lb_parse_points(shape)
+        if len(pts) < 2:
+            continue
+
+        layer = _get_layer(setting)
+        closed = _lb_path_closed(shape, pts)
+        length = _lb_polyline_length(pts, closed)
+        corners = _lb_count_corners(pts, closed)
+        layer.vector.cut_length_mm += length
+        layer.vector.num_paths += 1
+        layer.vector.num_corners += corners
+        if prev_end is not None:
+            layer.vector.travel_mm += math.dist(prev_end, pts[0])
+        prev_end = pts[0] if closed else pts[-1]
+
+        if speed:
+            seg_time, _ = _lb_vector_path_time(pts, closed, speed)
+            layer.vector.time_seconds += seg_time
+
+    # Finalise per-layer totals
+    for ci, layer in estimates.items():
+        setting = settings.get(ci)
+        passes = setting.num_passes if setting else 1
+        travel_t = layer.vector.travel_mm / max(_TRAVEL_SPEED, 1e-9)
+        path_t = layer.vector.num_paths * _PATH_OVERHEAD
+        corner_t = layer.vector.num_corners * _CORNER_OVERHEAD
+        layer.vector.time_seconds = (layer.vector.time_seconds + travel_t + path_t + corner_t) * passes
+        layer.raster.time_seconds = (
+            layer.raster.scan_distance_mm / max((layer.speed or 0) * _lb_raster_efficiency(setting or _CutSetting(ci, "", "", None)), 1e-9)
+            if layer.raster.scan_lines and layer.speed
+            else 0.0
+        ) * passes
+
+    return estimates
+
+
 def extract_lightburn_details(path: Path) -> dict:
     """
     Extract rich metadata from a LightBurn file for a detail page.
@@ -350,64 +648,42 @@ def extract_lightburn_details(path: Path) -> dict:
             "count": shape_layer_counts[idx],
         })
 
-    # --- Time estimate ---
-    OVERHEAD = 1.15
-    layer_lengths: dict[int, float] = {}
-    layer_path_counts: dict[int, int] = {}
-    for el in root.iter():
-        if el.tag == "Shape" and el.attrib.get("Type") == "Path":
-            ci = el.attrib.get("CutIndex")
-            if ci is not None:
-                ci = int(ci)
-                layer_lengths[ci] = layer_lengths.get(ci, 0.0) + _shape_path_length(el)
-                layer_path_counts[ci] = layer_path_counts.get(ci, 0) + 1
-        elif el.tag == "BackupPath" and el.attrib.get("Type") == "Path":
-            ci = el.attrib.get("CutIndex")
-            if ci is not None:
-                ci = int(ci)
-                layer_lengths[ci] = layer_lengths.get(ci, 0.0) + _shape_path_length(el)
-                layer_path_counts[ci] = layer_path_counts.get(ci, 0) + 1
-
-    # Build a fast lookup from layer list
-    layer_settings: dict[int, dict] = {int(l["index"]): l for l in layers if l["index"] != "?"}
-
-    total_active_mm = 0.0
-    total_raw_s = 0.0
-    total_overhead_s = 0.0
+    # --- Time estimate (improved: vector/raster, corners, short-segment penalties) ---
+    job_estimates = _lb_estimate_job(root)
+    total_seconds = sum(
+        e.vector.time_seconds + e.raster.time_seconds
+        for e in job_estimates.values()
+    )
     time_by_layer = []
-    for ci in sorted(layer_lengths):
-        lsetting = layer_settings.get(ci, {})
-        length_mm = layer_lengths[ci]
-        passes = int(lsetting.get("passes") or 1)
-        do_output = lsetting.get("do_output", True)
-        speed = float(lsetting.get("speed") or 0)
-        active_mm = length_mm * passes if do_output else 0.0
-        raw_s = (active_mm / speed) if (do_output and speed > 0) else None
-        overhead_s = (raw_s * OVERHEAD) if raw_s is not None else None
-        if raw_s is not None:
-            total_active_mm += active_mm
-            total_raw_s += raw_s
-            total_overhead_s += overhead_s
+    for ci in sorted(job_estimates):
+        est = job_estimates[ci]
+        lc = layer_map.get(ci, {})
+        layer_total = est.vector.time_seconds + est.raster.time_seconds
         time_by_layer.append({
             "cut_index": ci,
-            "name": lsetting.get("name", f"C{ci:02d}"),
-            "path_count": layer_path_counts.get(ci, 0),
-            "length_mm": round(length_mm, 2),
-            "active_length_mm": round(active_mm, 2),
-            "passes": passes,
-            "speed_mm_s": speed,
-            "do_output": do_output,
-            "time_raw": _fmt_time(raw_s),
-            "time_overhead": _fmt_time(overhead_s),
-            "color": layer_map.get(ci, {}).get("color", _layer_color(ci)),
-            "text_color": layer_map.get(ci, {}).get("text_color", "#222222"),
+            "name": est.name,
+            "layer_type": est.layer_type,
+            "passes": est.num_passes,
+            "speed_mm_s": est.speed,
+            "do_output": est.do_output,
+            "color": lc.get("color", _layer_color(ci)),
+            "text_color": lc.get("text_color", "#222222"),
+            "has_vector": est.vector.num_paths > 0,
+            "vector_paths": est.vector.num_paths,
+            "vector_length_mm": round(est.vector.cut_length_mm, 2),
+            "vector_corners": est.vector.num_corners,
+            "vector_time": _fmt_time(est.vector.time_seconds) if est.vector.time_seconds else "",
+            "has_raster": est.raster.num_objects > 0,
+            "raster_objects": est.raster.num_objects,
+            "raster_lines": est.raster.scan_lines,
+            "raster_time": _fmt_time(est.raster.time_seconds) if est.raster.time_seconds else "",
+            "layer_time": _fmt_time(layer_total),
+            "layer_seconds": layer_total,
         })
 
     time_estimate = {
-        "total_active_length_mm": round(total_active_mm, 2),
-        "time_raw": _fmt_time(total_raw_s if total_raw_s else None),
-        "time_overhead": _fmt_time(total_overhead_s if total_overhead_s else None),
-        "overhead_factor": OVERHEAD,
+        "total_time": _fmt_time(total_seconds) if total_seconds else None,
+        "total_seconds": total_seconds,
         "by_layer": time_by_layer,
     }
 

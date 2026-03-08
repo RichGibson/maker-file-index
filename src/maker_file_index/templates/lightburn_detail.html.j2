@@ -236,16 +236,8 @@
       <h2>Estimated cut time</h2>
       <div class="time-summary">
         <div class="time-stat">
-          <div class="val">{{ details.time_estimate.time_overhead }}</div>
+          <div class="val">{{ details.time_estimate.total_time or "—" }}</div>
           <div class="lbl">Estimated time</div>
-        </div>
-        <div class="time-stat">
-          <div class="val">{{ details.time_estimate.time_raw }}</div>
-          <div class="lbl">Raw (no overhead)</div>
-        </div>
-        <div class="time-stat">
-          <div class="val">{{ "%.0f"|format(details.time_estimate.total_active_length_mm) }} mm</div>
-          <div class="lbl">Active cut length</div>
         </div>
       </div>
       <table class="layers-table">
@@ -253,9 +245,9 @@
           <tr>
             <th>Layer</th>
             <th>Name</th>
-            <th>Paths</th>
-            <th>Length</th>
-            <th>Active length</th>
+            <th>Type</th>
+            <th>Vector</th>
+            <th>Raster</th>
             <th>Est. time</th>
           </tr>
         </thead>
@@ -264,15 +256,27 @@
           <tr{% if not tl.do_output %} class="layer-off"{% endif %}>
             <td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:{{ tl.color }};margin-right:5px;vertical-align:middle;"></span>C{{ "%02d"|format(tl.cut_index) }}</td>
             <td>{{ tl.name }}</td>
-            <td>{{ tl.path_count }}</td>
-            <td>{{ tl.length_mm }} mm</td>
-            <td>{{ tl.active_length_mm }} mm</td>
-            <td>{% if tl.do_output %}{{ tl.time_overhead }}{% else %}<span style="color:var(--text-faint)">off</span>{% endif %}</td>
+            <td>{{ tl.layer_type }}</td>
+            <td>
+              {% if tl.has_vector %}
+                {{ tl.vector_paths }} path{% if tl.vector_paths != 1 %}s{% endif %},
+                {{ "%.0f"|format(tl.vector_length_mm) }} mm,
+                {{ tl.vector_corners }} corner{% if tl.vector_corners != 1 %}s{% endif %}<br>
+                <span style="color:var(--text-faint);font-size:0.85em">{{ tl.vector_time }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if tl.has_raster %}
+                {{ tl.raster_objects }} obj, {{ tl.raster_lines }} lines<br>
+                <span style="color:var(--text-faint);font-size:0.85em">{{ tl.raster_time }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>{% if tl.do_output %}{{ tl.layer_time }}{% else %}<span style="color:var(--text-faint)">off</span>{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-      <div class="time-note">Estimate includes {{ ((details.time_estimate.overhead_factor - 1) * 100)|round|int }}% overhead for travel moves. Does not account for acceleration, corner slowdowns, or controller optimization.</div>
+      <div class="time-note">Estimate accounts for vector path length, corner overhead, raster scan lines, and travel moves. Does not account for controller optimization or firmware acceleration curves.</div>
     </div>
     {% endif %}
 

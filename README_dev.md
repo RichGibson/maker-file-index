@@ -1,5 +1,8 @@
 # dev README - my ugly work in progress notes.
 
+  Trigger a release build:
+  git tag v0.1.0
+  git push origin v0.1.0
 
 ## next prompt
 ❯ Lightburn files have a text type. Can you extract the text and put it on the lightburn detail pages.
