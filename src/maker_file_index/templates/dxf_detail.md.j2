@@ -1,0 +1,73 @@
+# {{ filename }}
+
+{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}{% endif %}
+
+{% if thumbnail %}
+![{{ filename }}]({{ thumbnail }})
+
+{% endif %}
+| | |
+|---|---|
+{% if details.acad_version %}| AutoCAD version | {{ details.acad_version }}{% if details.acad_version_name %} (R{{ details.acad_version_name }}){% endif %} |
+{% endif %}| Modified | {{ modified }} |
+| Size | {{ file_size }} |
+
+{% if details.error %}
+> **Error:** Could not parse DXF: {{ details.error }}
+
+{% else %}
+{% if details.size_x or details.size_y %}
+## Dimensions
+
+| | |
+|---|---|
+{% if details.size_x %}| Width | {{ details.size_x }} |
+{% endif %}{% if details.size_y %}| Height | {{ details.size_y }} |
+{% endif %}{% if details.size_z and details.size_z != "0.00" %}| Depth | {{ details.size_z }} |
+{% endif %}
+{% endif %}
+## Entities
+
+| | |
+|---|---|
+| Total entities | {{ details.total_entities }} |
+{% if details.total_length %}| Total path length | {{ details.total_length }} |
+{% endif %}
+
+{% if details.entity_counts %}
+### By type
+
+{% for etype, count in details.entity_counts.items() -%}
+- {{ etype }}: **{{ count }}**
+{% endfor %}
+
+{% endif %}
+{% if details.length_by_type %}
+### Path length by type
+
+| Type | Length |
+|------|-------:|
+{% for etype, length in details.length_by_type.items() -%}
+| {{ etype }} | {{ length }} |
+{% endfor %}
+
+{% endif %}
+{% if details.layers %}
+## Layers
+
+| Name | Color | Linetype | Entities |
+|------|-------|----------|--------:|
+{% for layer in details.layers -%}
+| {{ layer.name }} | {% if layer.color is defined and layer.color is not none %}{{ layer.color }}{% else %}—{% endif %} | {{ layer.linetype or '—' }} | {{ details.entities_by_layer.get(layer.name, '') }} |
+{% endfor %}
+
+{% endif %}
+{% if details.texts %}
+## Text content
+
+{% for t in details.texts -%}
+- `{{ t }}`
+{% endfor %}
+
+{% endif %}
+{% endif %}

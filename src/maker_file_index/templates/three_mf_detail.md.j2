@@ -1,0 +1,65 @@
+# {{ filename }}
+
+{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}{% endif %}
+
+{% if thumbnail %}
+![{{ filename }}]({{ thumbnail }})
+
+{% endif %}
+| | |
+|---|---|
+{% if details.unit %}| Unit | {{ details.unit }} |
+{% endif %}{% if details.package_metadata.get('Title') %}| Title | {{ details.package_metadata['Title'] }} |
+{% endif %}{% if details.package_metadata.get('Author') %}| Author | {{ details.package_metadata['Author'] }} |
+{% endif %}{% if details.package_metadata.get('Application') %}| Application | {{ details.package_metadata['Application'] }} |
+{% endif %}| Modified | {{ modified }} |
+| Size | {{ file_size }} |
+
+{% if details.error %}
+> **Error:** Could not parse 3MF: {{ details.error }}
+
+{% else %}
+{% if details.object_names %}
+## Objects / parts
+
+{% for name in details.object_names -%}
+- {{ name }}
+{% endfor %}
+
+{% endif %}
+## Dimensions
+
+| Axis | mm | inches |
+|------|---:|-------:|
+| X (width) | {{ details.size_x_mm }} | {{ details.size_x_in }} |
+| Y (depth) | {{ details.size_y_mm }} | {{ details.size_y_in }} |
+| Z (height) | {{ details.size_z_mm }} | {{ details.size_z_in }} |
+
+## Mesh
+
+| | |
+|---|---|
+| Triangles | {{ "{:,}".format(details.triangle_count) }} |
+| Vertices | {{ "{:,}".format(details.vertex_count) }} |
+| Unique edges | {{ "{:,}".format(details.unique_edges) }} |
+| Connected components | {{ details.connected_components }} |
+| Manifold (watertight) | {% if details.is_manifold %}Yes{% else %}No{% endif %} |
+
+## Surface area & volume
+
+| | |
+|---|---|
+| Surface area | {{ details.surface_area_mm2 }} mm² / {{ details.surface_area_cm2 }} cm² |
+| Volume | {{ details.volume_mm3 }} mm³ / {{ details.volume_cm3 }} cm³ |
+
+{% if details.slicer_settings %}
+## Slicer settings
+
+| Setting | Value |
+|---------|-------|
+{% for s in details.slicer_settings -%}
+| {{ s.key }} | {{ s.value }} |
+{% endfor %}
+
+{% endif %}
+{% endif %}

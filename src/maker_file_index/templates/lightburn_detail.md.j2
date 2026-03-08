@@ -1,0 +1,68 @@
+# {{ filename }}
+
+{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}{% endif %}
+
+{% if thumbnail %}
+![{{ filename }}]({{ thumbnail }})
+
+{% endif %}
+| | |
+|---|---|
+{% if details.device_name %}| Machine | {{ details.device_name }} |
+{% endif %}{% if details.app_version %}| LightBurn | {{ details.app_version }} |
+{% endif %}{% if details.material_height and details.material_height != '0' %}| Material height | {{ details.material_height }} mm |
+{% endif %}{% if details.mirror_x == 'True' or details.mirror_y == 'True' %}| Mirror | {% if details.mirror_x == 'True' %}X{% endif %}{% if details.mirror_x == 'True' and details.mirror_y == 'True' %}, {% endif %}{% if details.mirror_y == 'True' %}Y{% endif %} |
+{% endif %}| Modified | {{ modified }} |
+| Size | {{ file_size }} |
+
+{% if details.notes %}
+## Notes
+
+{{ details.notes }}
+
+{% endif %}
+{% if details.text_strings %}
+## Text content
+
+{% for t in details.text_strings -%}
+- `{{ t }}`
+{% endfor %}
+
+{% endif %}
+{% if details.layers %}
+## Laser layers
+
+| Layer | Name | Type | Speed | Power | Passes | Output |
+|-------|------|------|------:|------:|-------:|--------|
+{% for layer in details.layers -%}
+| C{{ "%02d"|format(layer.index|int) }} | {{ layer.name }} | {{ layer.type }} | {{ layer.speed }} mm/s | {% if layer.min_power == layer.max_power %}{{ layer.max_power }}%{% else %}{{ layer.min_power }}–{{ layer.max_power }}%{% endif %} | {{ layer.passes }} | {% if layer.do_output %}Yes{% else %}off{% endif %} |
+{% endfor %}
+{% endif %}
+{% if details.time_estimate and details.time_estimate.by_layer %}
+## Estimated cut time
+
+**Total: {{ details.time_estimate.total_time or "—" }}**
+
+| Layer | Name | Type | Vector | Raster | Time |
+|-------|------|------|--------|--------|------|
+{% for tl in details.time_estimate.by_layer -%}
+| C{{ "%02d"|format(tl.cut_index) }} | {{ tl.name }} | {{ tl.layer_type }} | {% if tl.has_vector %}{{ tl.vector_paths }} paths · {{ "%.0f"|format(tl.vector_length_mm) }} mm · {{ tl.vector_corners }} corners ({{ tl.vector_time }}){% else %}—{% endif %} | {% if tl.has_raster %}{{ tl.raster_objects }} obj · {{ tl.raster_lines }} lines ({{ tl.raster_time }}){% else %}—{% endif %} | {% if tl.do_output %}{{ tl.layer_time }}{% else %}off{% endif %} |
+{% endfor %}
+
+{% endif %}
+{% if details.shape_counts %}
+## Shape counts
+
+{% for type, count in details.shape_counts.items() -%}
+- {{ type }}: **{{ count }}**
+{% endfor %}
+
+{% endif %}
+{% if details.shapes_by_layer %}
+## Shapes by layer
+
+{% for s in details.shapes_by_layer -%}
+- {{ s.layer_name }}: **{{ s.count }}**
+{% endfor %}
+
+{% endif %}

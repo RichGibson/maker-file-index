@@ -11,7 +11,7 @@ except PackageNotFoundError:
     __version__ = "unknown"
 
 from maker_file_index.indexer import scan
-from maker_file_index.renderers.markdown import write_markdown_report, write_directory_pages
+from maker_file_index.renderers.markdown import write_markdown_report, write_directory_pages, write_detail_pages_markdown
 from maker_file_index.renderers.html import write_directory_pages_html, write_landing_page_html, write_lightburn_detail_pages_html, write_stl_detail_pages_html, write_3mf_detail_pages_html, write_svg_detail_pages_html, write_dxf_detail_pages_html, write_scad_detail_pages_html
 
 
@@ -55,8 +55,11 @@ def main(argv: list[str] | None = None) -> int:
     root_dir = Path(args.target).expanduser().resolve() if Path(args.target).expanduser().is_dir() else Path(args.target).expanduser().resolve().parent
 
     print(f"\nWriting markdown report ({len(records)} files)...")
-    write_markdown_report(records, out_path, root_for_rel=root_for_rel)
+    write_markdown_report(records, out_path, root_for_rel=root_for_rel, root_dir=root_dir)
     write_directory_pages(records, out_dir=out_path.parent, root_dir=root_dir)
+
+    print("Writing markdown detail pages...")
+    write_detail_pages_markdown(records, out_dir=out_path.parent, root_dir=root_dir)
 
     print("Writing HTML directory pages...")
     write_directory_pages_html(records, out_dir=out_path.parent, root_dir=root_dir)

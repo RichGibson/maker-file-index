@@ -1,14 +1,19 @@
-# {{ directory }}
+# {{ directory_name }}
 
 Generated: {{ generated_at }}
 
----
+{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ directory_name }}{% endif %}
 
+{% if readme_content %}
+{{ readme_content }}
+
+{% endif %}
 ## Subdirectories
 
 {% if subdirs %}
-{% for d in subdirs %}
-- [{{ d.name }}]({{ d.link }}){% if d.readme_title %} — [{{ d.readme_title }}]({{ d.readme_link }}){% endif %}{% if d.counts %} {{ d.counts }}{% endif %}
+{% for d in subdirs -%}
+- [{{ d.name }}/]({{ d.link }}){% if d.counts %} _({{ d.counts }})_{% endif %}{% if d.readme_title %} — {{ d.readme_title }}{% endif %}
+
 {% endfor %}
 {% else %}
 _None_
@@ -16,24 +21,17 @@ _None_
 
 ---
 
-
 ## Files
 
 {% if by_ext %}
 {% for ext, items in by_ext.items() %}
-### {{ ext|upper }} ({{ items|length }})
+### {{ ext | upper }} ({{ items | length }})
 
-{% for r in items %}
-- **{{ r.path.name }}**{% if r.thumbnail_path %}  
-  <img src="{{ r.thumbnail_path }}" height="200">{% endif %}{% if r.notes %}  
-  {{ r.notes|replace('\n', ' ') }}{% endif %}{% if r.error %}  
-  Error: {{ r.error }}{% endif %}
+{% for item in items -%}
+- {% if item.detail_link %}[**{{ item.name }}**]({{ item.detail_link }}){% else %}**{{ item.name }}**{% endif %}{% if item.notes %} — {{ item.notes }}{% endif %}{% if item.error %} ⚠ _{{ item.error }}_{% endif %}
+
 {% endfor %}
-
----
 {% endfor %}
 {% else %}
 _No files_
 {% endif %}
-
-

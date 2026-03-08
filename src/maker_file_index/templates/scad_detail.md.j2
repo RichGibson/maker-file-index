@@ -1,0 +1,103 @@
+# {{ filename }}
+
+{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}{% endif %}
+
+{% if thumbnail %}
+![{{ filename }}]({{ thumbnail }})
+
+{% endif %}
+| | |
+|---|---|
+| Lines | {{ details.line_count }} |
+| Modified | {{ modified }} |
+| Size | {{ file_size }} |
+
+{% if details.error %}
+> **Error:** Could not parse SCAD: {{ details.error }}
+
+{% else %}
+## Overview
+
+| | |
+|---|---|
+| Lines | {{ details.line_count }} |
+{% if details.modules %}| Modules | {{ details.modules | length }} |
+{% endif %}{% if details.primitive_counts %}| Primitives | {{ details.primitive_counts.values() | sum }} |
+{% endif %}{% if details.includes %}| Includes / uses | {{ details.includes | length }} |
+{% endif %}
+
+{% if details.includes %}
+## Includes / uses
+
+{% for inc in details.includes -%}
+- `{{ inc }}`
+{% endfor %}
+
+{% endif %}
+{% if details.modules %}
+## Modules
+
+{% for mod in details.modules -%}
+- `{{ mod.name }}`{% if mod.params %} — `{{ mod.params | join(', ') }}`{% endif %}
+{% endfor %}
+
+{% endif %}
+{% if details.assignments %}
+## Parameters
+
+| Name | Value | Note |
+|------|-------|------|
+{% for a in details.assignments -%}
+| `{{ a.name }}` | `{{ a.value }}` | {{ a.comment or '' }} |
+{% endfor %}
+
+{% endif %}
+{% if details.primitive_counts %}
+## Primitives
+
+{% for name, count in details.primitive_counts.items() -%}
+- {{ name }}: **{{ count }}**
+{% endfor %}
+
+{% endif %}
+{% if details.transform_counts %}
+## Transforms
+
+{% for name, count in details.transform_counts.items() -%}
+- {{ name }}: **{{ count }}**
+{% endfor %}
+
+{% endif %}
+{% if details.csg_counts %}
+## CSG operations
+
+{% for name, count in details.csg_counts.items() -%}
+- {{ name }}: **{{ count }}**
+{% endfor %}
+
+{% endif %}
+{% if details.custom_module_calls %}
+## Module calls
+
+{% for name, count in details.custom_module_calls.items() -%}
+- `{{ name }}`: **{{ count }}**
+{% endfor %}
+
+{% endif %}
+{% if details.comments %}
+## Comments
+
+{% for c in details.comments -%}
+> {{ c | replace('\n', ' ') }}
+
+{% endfor %}
+{% endif %}
+{% if details.strings %}
+## Strings
+
+{% for s in details.strings -%}
+- `{{ s }}`
+{% endfor %}
+
+{% endif %}
+{% endif %}

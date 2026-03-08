@@ -1,0 +1,57 @@
+# {{ filename }}
+
+{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}{% endif %}
+
+{% if thumbnail %}
+![{{ filename }}]({{ thumbnail }})
+
+{% endif %}
+| | |
+|---|---|
+{% if details.width %}| Width | {{ details.width }} |
+{% endif %}{% if details.height %}| Height | {{ details.height }} |
+{% endif %}{% if details.viewbox %}| viewBox | {{ details.viewbox }} |
+{% endif %}{% if details.tool %}| Created by | {{ details.tool }} |
+{% endif %}| Modified | {{ modified }} |
+| Size | {{ file_size }} |
+
+{% if details.error %}
+> **Error:** Could not parse SVG: {{ details.error }}
+
+{% else %}
+{% if details.path_count > 0 %}
+## Paths
+
+| | |
+|---|---|
+| Total paths | {{ details.path_count }} |
+| Closed | {{ details.closed_paths }} |
+| Open | {{ details.open_paths }} |
+| Total path length | {{ details.total_path_length }} |
+
+{% endif %}
+{% if details.counts %}
+## Elements
+
+{% for tag, count in details.counts.items() -%}
+- `{{ tag }}`: {{ count }}
+{% endfor %}
+
+{% endif %}
+{% if details.groups %}
+## Layers / groups
+
+{% for g in details.groups -%}
+- {{ g.label }}{% if g.id and g.id != g.label %} _(id: {{ g.id }})_{% endif %}
+{% endfor %}
+
+{% endif %}
+{% if details.texts %}
+## Text content
+
+{% for t in details.texts -%}
+- `{{ t }}`
+{% endfor %}
+
+{% endif %}
+{% endif %}

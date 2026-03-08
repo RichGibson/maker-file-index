@@ -1,0 +1,45 @@
+# {{ filename }}
+
+{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}{% endif %}
+
+{% if thumbnail %}
+![{{ filename }}]({{ thumbnail }})
+
+{% endif %}
+| | |
+|---|---|
+| Format | {{ details.format | capitalize if details.format else '—' }} |
+{% if details.header_text %}| Header | {{ details.header_text }} |
+{% endif %}| Modified | {{ modified }} |
+| Size | {{ file_size }} |
+
+{% if details.error %}
+> **Error:** Could not parse STL: {{ details.error }}
+
+{% else %}
+## Dimensions
+
+| Axis | mm | inches |
+|------|---:|-------:|
+| X (width) | {{ details.size_x_mm }} | {{ details.size_x_in }} |
+| Y (depth) | {{ details.size_y_mm }} | {{ details.size_y_in }} |
+| Z (height) | {{ details.size_z_mm }} | {{ details.size_z_in }} |
+
+## Mesh
+
+| | |
+|---|---|
+| Triangles | {{ "{:,}".format(details.triangle_count) }} |
+| Unique vertices | {{ "{:,}".format(details.unique_vertices) }} |
+| Unique edges | {{ "{:,}".format(details.unique_edges) }} |
+| Connected components | {{ details.connected_components }} |
+| Manifold (watertight) | {% if details.is_manifold %}Yes{% else %}No — some edges not shared by exactly 2 faces{% endif %} |
+
+## Surface area & volume
+
+| | |
+|---|---|
+| Surface area | {{ details.surface_area_mm2 }} mm² / {{ details.surface_area_cm2 }} cm² |
+| Volume | {{ details.volume_mm3 }} mm³ / {{ details.volume_cm3 }} cm³ |
+
+{% endif %}
