@@ -1,11 +1,13 @@
 # {{ filename }}
+{%- if breadcrumbs | length > 1 %}
 
-{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}{% endif %}
+> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}
+{%- endif %}
+{%- if thumbnail %}
 
-{% if thumbnail %}
 ![{{ filename }}]({{ thumbnail }})
+{%- endif %}
 
-{% endif %}
 | | |
 |---|---|
 | Format | {{ details.format | capitalize if details.format else '—' }} |

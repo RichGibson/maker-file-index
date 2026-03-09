@@ -206,3 +206,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# maker-file-index generated output (default output dir and legacy scattered output)
+maker_file_data/
+dirs/
+index.html
+lightburn_notes.md
+maker_file_notes.md
+*_thumbnail.png

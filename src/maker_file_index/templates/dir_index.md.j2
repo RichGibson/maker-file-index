@@ -1,21 +1,22 @@
 # {{ directory_name }}
 
 Generated: {{ generated_at }}
+{%- if breadcrumbs %}
 
-{% if breadcrumbs %}> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ directory_name }}{% endif %}
+> {% for crumb in breadcrumbs %}[{{ crumb.name }}]({{ crumb.link }}) / {% endfor %}{{ directory_name }}
+{%- endif %}
+{%- if readme_content %}
 
-{% if readme_content %}
 {{ readme_content }}
+{%- endif %}
 
-{% endif %}
 ## Subdirectories
 
 {% if subdirs %}
-{% for d in subdirs -%}
+{%- for d in subdirs %}
 - [{{ d.name }}/]({{ d.link }}){% if d.counts %} _({{ d.counts }})_{% endif %}{% if d.readme_title %} — {{ d.readme_title }}{% endif %}
-
 {% endfor %}
-{% else %}
+{%- else %}
 _None_
 {% endif %}
 
@@ -24,14 +25,14 @@ _None_
 ## Files
 
 {% if by_ext %}
-{% for ext, items in by_ext.items() %}
+{%- for ext, items in by_ext.items() %}
 ### {{ ext | upper }} ({{ items | length }})
 
 {% for item in items -%}
 - {% if item.detail_link %}[**{{ item.name }}**]({{ item.detail_link }}){% else %}**{{ item.name }}**{% endif %}{% if item.notes %} — {{ item.notes }}{% endif %}{% if item.error %} ⚠ _{{ item.error }}_{% endif %}
 
 {% endfor %}
-{% endfor %}
-{% else %}
+{%- endfor %}
+{%- else %}
 _No files_
 {% endif %}

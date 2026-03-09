@@ -60,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     records = scan(args.target, recursive=recursive, debug_plugins=args.debug_plugins, output_dir=output_dir)
 
     if not records:
-        print(f"ERROR: No LightBurn files found for target: {args.target}", file=sys.stderr)
+        print(f"ERROR: No supported files found for target: {args.target}", file=sys.stderr)
         return 2
 
     print(f"\nWriting markdown report ({len(records)} files)...")

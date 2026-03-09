@@ -98,10 +98,14 @@ pip install -e .
 maker-file-index <path>
 ```
 
-Generates:
-- `lightburn_notes.md` — Markdown report
-- `index.html` — landing page
-- `dirs/` — per-directory HTML pages
+All output goes into a dedicated directory (default: `maker_file_data/`) — your source files are never modified.
+
+```
+maker_file_data/
+  maker_file_notes.md   — Markdown report
+  index.html            — landing page
+  dirs/                 — per-directory HTML + Markdown pages and thumbnails
+```
 
 ## Usage
 
@@ -117,10 +121,14 @@ File, directory, or glob to scan.
 
 ## Options
 
-### `-o, --output PATH`
+### `-o, --output-dir PATH`
 
-Output Markdown filename.
-Default: `lightburn_notes.md`
+Output directory for all generated files.
+Default: `maker_file_data`
+
+### `--alongside-source`
+
+Write thumbnails alongside source files instead of in the output directory (opt-in, reverts to old behavior).
 
 ### `--no-recursive`
 
