@@ -11,6 +11,7 @@ from maker_file_index.indexer import group_by_directory
 from maker_file_index.model import IndexRecord
 from maker_file_index.plugins.dxf import extract_dxf_details
 from maker_file_index.plugins.lightburn import extract_lightburn_details
+from maker_file_index.plugins.cdr import extract_cdr_details
 from maker_file_index.plugins.scad import extract_scad_details
 from maker_file_index.plugins.stl import extract_stl_details
 from maker_file_index.plugins.svg import extract_svg_details
@@ -22,7 +23,8 @@ THREE_MF_EXTS = {"3mf"}
 SVG_EXTS = {"svg"}
 DXF_EXTS = {"dxf"}
 SCAD_EXTS = {"scad"}
-DETAIL_EXTS = LIGHTBURN_EXTS | STL_EXTS | THREE_MF_EXTS | SVG_EXTS | DXF_EXTS | SCAD_EXTS
+CDR_EXTS = {"cdr"}
+DETAIL_EXTS = LIGHTBURN_EXTS | STL_EXTS | THREE_MF_EXTS | SVG_EXTS | DXF_EXTS | SCAD_EXTS | CDR_EXTS
 
 _DETAIL_CONFIG: dict[str, tuple[str, object]] = {
     **{ext: ("lightburn_detail.md.j2", extract_lightburn_details) for ext in LIGHTBURN_EXTS},
@@ -31,6 +33,7 @@ _DETAIL_CONFIG: dict[str, tuple[str, object]] = {
     **{ext: ("svg_detail.md.j2", extract_svg_details) for ext in SVG_EXTS},
     **{ext: ("dxf_detail.md.j2", extract_dxf_details) for ext in DXF_EXTS},
     **{ext: ("scad_detail.md.j2", extract_scad_details) for ext in SCAD_EXTS},
+    **{ext: ("cdr_detail.md.j2", extract_cdr_details) for ext in CDR_EXTS},
 }
 
 

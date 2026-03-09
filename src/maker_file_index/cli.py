@@ -11,8 +11,9 @@ except PackageNotFoundError:
     __version__ = "unknown"
 
 from maker_file_index.indexer import scan
+from maker_file_index.cleanup import cleanup_stale_output
 from maker_file_index.renderers.markdown import write_markdown_report, write_directory_pages, write_detail_pages_markdown
-from maker_file_index.renderers.html import write_directory_pages_html, write_landing_page_html, write_lightburn_detail_pages_html, write_stl_detail_pages_html, write_3mf_detail_pages_html, write_svg_detail_pages_html, write_dxf_detail_pages_html, write_scad_detail_pages_html
+from maker_file_index.renderers.html import write_directory_pages_html, write_landing_page_html, write_lightburn_detail_pages_html, write_stl_detail_pages_html, write_3mf_detail_pages_html, write_svg_detail_pages_html, write_dxf_detail_pages_html, write_scad_detail_pages_html, write_cdr_detail_pages_html
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,7 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     help="File, directory, or glob (quote globs)",
 )
     parser.add_argument("-o", "--output-dir", default="maker_file_data", help="Output directory for all generated files (default: maker_file_data)")
-    parser.add_argument("--alongside-source", action="store_true", help="Write thumbnails alongside source files instead of in the output directory.")
+    parser.add_argument("--alongside-source", action="store_true", help="Write all output (HTML, markdown, thumbnails) into the source directory tree instead of a separate output directory. WARNING: may create or overwrite files in your source directory.")
     parser.add_argument(
         "--no-recursive",
         action="store_true",
@@ -93,6 +94,15 @@ def main(argv: list[str] | None = None) -> int:
 
     print("Writing OpenSCAD detail pages...")
     write_scad_detail_pages_html(records, out_dir=out_dir, root_dir=root_dir)
+
+    print("Writing Corel Draw detail pages...")
+    write_cdr_detail_pages_html(records, out_dir=out_dir, root_dir=root_dir)
+
+    if output_dir is not None:
+        print("Cleaning up stale output...")
+        n = cleanup_stale_output(records, out_dir=out_dir, root_dir=root_dir)
+        if n:
+            print(f"  Removed {n} stale file{'s' if n != 1 else ''}.")
 
     print("\nDone.")
     print(str(notes_path))

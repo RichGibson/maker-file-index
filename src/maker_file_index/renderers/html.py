@@ -14,6 +14,7 @@ from maker_file_index.plugins.three_mf import extract_3mf_details
 from maker_file_index.plugins.svg import extract_svg_details
 from maker_file_index.plugins.dxf import extract_dxf_details
 from maker_file_index.plugins.scad import extract_scad_details
+from maker_file_index.plugins.cdr import extract_cdr_details
 
 LIGHTBURN_EXTS = {"lbrn2", "lbrn"}
 STL_EXTS = {"stl"}
@@ -21,6 +22,7 @@ THREE_MF_EXTS = {"3mf"}
 SVG_EXTS = {"svg"}
 DXF_EXTS = {"dxf"}
 SCAD_EXTS = {"scad"}
+CDR_EXTS = {"cdr"}
 
 # AutoCAD Color Index (ACI) → approximate CSS color for the most common indices
 _ACI_CSS = {
@@ -286,7 +288,7 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
             ext = r.path.suffix.lower().lstrip(".")
 
             # Detail page link for supported file types, raw file otherwise
-            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS:
+            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS or ext in CDR_EXTS:
                 rel = r.path.parent.relative_to(root_dir)
                 detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
                 file_link = url_path(os.path.relpath(detail_page, start=out_dir))
@@ -498,7 +500,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
 
             # For supported file types, link to a detail page instead of the raw file
             detail_link = ""
-            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS:
+            if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS or ext in CDR_EXTS:
                 rel = r.path.parent.relative_to(root_dir)
                 detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
                 detail_link = url_path(os.path.relpath(detail_page, start=page_path.parent))
@@ -574,7 +576,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             dir_link = url_path(os.path.relpath(sd_page, start=page_path.parent))
             for r in sd_bucket.get("records", []):
                 ext = r.path.suffix.lower().lstrip(".")
-                if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS:
+                if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS or ext in CDR_EXTS:
                     r_rel = r.path.parent.relative_to(root_dir)
                     dp = (dirs_root / r_rel / r.path.stem).with_suffix(".html")
                     flink = url_path(os.path.relpath(dp, start=page_path.parent))
@@ -1132,4 +1134,76 @@ def write_scad_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None
             file_size=file_size,
         )
 
+        page_path.write_text(rendered, encoding="utf-8")
+
+def write_cdr_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
+    out_dir = out_dir.expanduser().resolve()
+    root_dir = root_dir.expanduser().resolve()
+    dirs_root = out_dir / "dirs"
+
+    env = Environment(
+        loader=PackageLoader("maker_file_index", "templates"),
+        autoescape=select_autoescape(enabled_extensions=("html", "xml")),
+    )
+    template = env.get_template("cdr_detail.html.j2")
+
+    cdr_records = [r for r in records if r.path.suffix.lower().lstrip(".") in CDR_EXTS]
+
+    for i, r in enumerate(cdr_records, 1):
+        rel = r.path.parent.relative_to(root_dir)
+        page_path = (dirs_root / rel / r.path.stem).with_suffix(".html")
+        page_path.parent.mkdir(parents=True, exist_ok=True)
+        if page_path.exists() and page_path.stat().st_mtime >= r.path.stat().st_mtime:
+            continue
+        print(f"  [{i}/{len(cdr_records)}] {r.path.name}")
+
+        details = extract_cdr_details(r.path)
+
+        thumbnail = ""
+        tp = r.thumbnail_path
+        if tp:
+            tp = Path(tp)
+            if str(tp) not in ("", ".", "./"):
+                if not tp.is_absolute():
+                    tp = (r.path.parent / tp).resolve()
+                if tp.exists() and tp.is_file():
+                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+
+        try:
+            stat = r.path.stat()
+            modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M")
+            size_bytes = stat.st_size
+            file_size = f"{size_bytes / 1024 / 1024:.1f} MB" if size_bytes >= 1024 * 1024 else f"{size_bytes / 1024:.1f} KB" if size_bytes >= 1024 else f"{size_bytes} B"
+        except OSError:
+            modified = ""
+            file_size = ""
+
+        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+
+        crumb_parts = []
+        cur = r.path.parent
+        while cur != root_dir and cur.parent != cur:
+            crumb_parts.append(cur)
+            cur = cur.parent
+        crumb_parts.reverse()
+
+        breadcrumbs = []
+        for part in crumb_parts:
+            part_rel = part.relative_to(root_dir)
+            part_page = (dirs_root / part_rel / "index.html").resolve()
+            breadcrumbs.append({
+                "name": part.name,
+                "link": os.path.relpath(part_page, start=page_path.parent),
+            })
+        breadcrumbs.append({"name": r.path.name, "link": ""})
+
+        rendered = template.render(
+            filename=r.path.name,
+            home_link=home_link,
+            breadcrumbs=breadcrumbs,
+            thumbnail=thumbnail,
+            details=details,
+            modified=modified,
+            file_size=file_size,
+        )
         page_path.write_text(rendered, encoding="utf-8")

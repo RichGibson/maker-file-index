@@ -65,6 +65,22 @@ def _extract_preview(path: Path) -> bytes | None:
         return z.read(candidates[0])
 
 
+def extract_cdr_details(path: Path) -> dict:
+    """Return basic CDR file info. Full parsing of CDR is not supported."""
+    is_zip = False
+    try:
+        with zipfile.ZipFile(path) as z:
+            names = z.namelist()
+            is_zip = True
+    except Exception:
+        names = []
+    return {
+        "format": "CDR (ZIP-based)" if is_zip else "CDR (legacy binary)",
+        "is_zip": is_zip,
+        "error": None if is_zip else "Legacy binary CDR format — thumbnail extraction not supported",
+    }
+
+
 class CDRPlugin:
     name = "cdr"
     extensions = {".cdr"}

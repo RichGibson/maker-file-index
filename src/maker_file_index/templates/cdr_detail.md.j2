@@ -1,0 +1,22 @@
+# {{ filename }}
+{%- if breadcrumbs | length > 1 %}
+
+> {% for crumb in breadcrumbs %}{% if not loop.last %}[{{ crumb.name }}]({{ crumb.link }}) / {% endif %}{% endfor %}{{ filename }}
+{%- endif %}
+{%- if thumbnail %}
+
+![{{ filename }}]({{ thumbnail }})
+{%- endif %}
+
+| | |
+|---|---|
+| Format | {{ details.format }} |
+| Modified | {{ modified }} |
+| Size | {{ file_size }} |
+
+{% if details.error %}
+> **Error:** {{ details.error }}
+
+{% endif %}
+CorelDRAW files contain vector graphics, curves, text, and bitmaps.
+Detailed metadata extraction is not currently supported — only the embedded preview thumbnail is available.
