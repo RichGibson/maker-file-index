@@ -6,7 +6,7 @@ This guide covers everything you need to work on `maker-file-index` — project 
 
 ## Prerequisites: Python environment
 
-You need at least Python 3.9+ and the project's dependencies. A conda environment is a good way to keep this isolated from your system Python. Here's how to create one and get started:
+You need Python 3.10 or later and the project's dependencies. A conda environment is a good way to keep this isolated from your system Python. Here's how to create one and get started:
 
 ```bash
 # Create a new environment named myenv with Python 3.12

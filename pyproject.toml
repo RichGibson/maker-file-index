@@ -9,7 +9,7 @@ name = "maker-file-index"
 version = "0.1.2"
 description = "Index maker files (lbrn, dxf, stl, 3mf, scad, and more) with thumbnails and notes."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
   { name = "Rich Gibson" }
