@@ -32,6 +32,9 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [project.entry-points."maker_file_index.plugins"]
 lightburn = "maker_file_index.plugins.lightburn:LightBurnPlugin"
 stl = "maker_file_index.plugins.stl:STLPlugin"
