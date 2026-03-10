@@ -39,36 +39,6 @@ and run it directly:
 On macOS you may need to allow the binary in **System Settings → Privacy & Security**
 the first time you run it (Gatekeeper warning for unsigned binaries).
 
-## Features
-
-- Plugin-based architecture — easy to extend with new file types
-- **LightBurn** (`.lbrn2`, `.lbrn`) — embedded thumbnail and notes extraction
-- **STL** — thumbnail generation via numpy-stl + matplotlib
-- **OpenSCAD** (`.scad`) — thumbnail generation via OpenSCAD CLI
-- **3MF** — embedded preview image extraction
-- **SVG** — displayed directly as preview
-- **DXF** — thumbnail generation via ezdxf + matplotlib
-- **Corel Draw** (`.cdr`) — embedded thumbnail
-
-### HTML output
-
-- Landing page with all top-level directories, sorted newest first
-- Per-directory pages with thumbnail grid
-- Sidebar with full directory tree navigation, current page highlighted, scroll position preserved
-- Clickable file type stat buttons on landing page (show count, filter on click)
-- File type filter buttons in sidebar on directory pages
-- Text search box to filter cards by name
-- Breadcrumb navigation
-- Colored file type badges on every card
-- Notes snippet displayed on file cards
-- Error badge on cards where thumbnail generation failed
-- **LightBurn detail pages** — thumbnail, file metadata (machine, LightBurn version, material height, mirror), notes, laser layer table (color-coded, speed, power, passes, output, priority), shape counts, shapes per layer, embedded text strings, estimated cut time with per-layer vector/raster breakdown
-- **STL detail pages** — dimensions (mm + inches), mesh stats (triangles, vertices, edges, connected components), manifold check, surface area and volume
-- **3MF detail pages** — dimensions, mesh stats, manifold check, surface area and volume, package metadata (title, author, application), object/part names, slicer settings table (printer model, layer height, infill, supports, speeds — when present)
-- **SVG detail pages** — SVG rendered directly as preview, document dimensions and viewBox, authoring tool detection (Inkscape, Illustrator, etc.), path count, open/closed paths, total estimated path length, element type breakdown, named layers/groups, text content
-- **DXF detail pages** — thumbnail, AutoCAD version, dimensions, entity type breakdown, estimated path length by type, layer table (with ACI color swatches), entities-by-layer counts, text content
-- **OpenSCAD detail pages** — thumbnail, file stats (lines, size), module definitions, parameter assignments, includes, primitive/transform/CSG counts, embedded comments and strings
-
 ## Requirements
 
 ### Python install
@@ -145,6 +115,37 @@ Show which plugin handles each file.
 ### `--version`
 
 Print the version and exit.
+
+
+## Features
+
+- Plugin-based architecture — easy to extend with new file types
+- **LightBurn** (`.lbrn2`, `.lbrn`) — embedded thumbnail and notes extraction
+- **STL** — thumbnail generation via numpy-stl + matplotlib
+- **OpenSCAD** (`.scad`) — thumbnail generation via OpenSCAD CLI
+- **3MF** — embedded preview image extraction
+- **SVG** — displayed directly as preview
+- **DXF** — thumbnail generation via ezdxf + matplotlib
+- **Corel Draw** (`.cdr`) — embedded thumbnail
+
+### HTML output
+
+- Landing page with all top-level directories, sorted newest first
+- Per-directory pages with thumbnail grid
+- Sidebar with full directory tree navigation, current page highlighted, scroll position preserved
+- Clickable file type stat buttons on landing page (show count, filter on click)
+- File type filter buttons in sidebar on directory pages
+- Text search box to filter cards by name
+- Breadcrumb navigation
+- Colored file type badges on every card
+- Notes snippet displayed on file cards
+- Error badge on cards where thumbnail generation failed
+- **LightBurn detail pages** — thumbnail, file metadata (machine, LightBurn version, material height, mirror), notes, laser layer table (color-coded, speed, power, passes, output, priority), shape counts, shapes per layer, embedded text strings, estimated cut time with per-layer vector/raster breakdown
+- **STL detail pages** — dimensions (mm + inches), mesh stats (triangles, vertices, edges, connected components), manifold check, surface area and volume
+- **3MF detail pages** — dimensions, mesh stats, manifold check, surface area and volume, package metadata (title, author, application), object/part names, slicer settings table (printer model, layer height, infill, supports, speeds — when present)
+- **SVG detail pages** — SVG rendered directly as preview, document dimensions and viewBox, authoring tool detection (Inkscape, Illustrator, etc.), path count, open/closed paths, total estimated path length, element type breakdown, named layers/groups, text content
+- **DXF detail pages** — thumbnail, AutoCAD version, dimensions, entity type breakdown, estimated path length by type, layer table (with ACI color swatches), entities-by-layer counts, text content
+- **OpenSCAD detail pages** — thumbnail, file stats (lines, size), module definitions, parameter assignments, includes, primitive/transform/CSG counts, embedded comments and strings
 
 ## Utilities
 
