@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import os
 from collections import defaultdict
+
+
+def _relpath(path, start=os.curdir) -> str:
+    """os.path.relpath with forward slashes (Windows-safe for markdown links)."""
+    return os.path.relpath(path, start=start).replace(os.sep, "/")
 from datetime import datetime
 from pathlib import Path
 
@@ -99,7 +104,7 @@ def write_markdown_report(
 
         for d in sorted(seen, key=lambda x: x.name.lower()):
             dir_page = dirs_root / d.relative_to(root_dir_p) / "index.md"
-            link = os.path.relpath(dir_page, start=output_path.parent)
+            link = _relpath(dir_page, start=output_path.parent)
             ext_c = grouped.get(d, {}).get("ext_counts", {})
             count_str = ", ".join(
                 f"{n} {ext}" for ext, n in sorted(ext_c.items(), key=lambda kv: (-kv[1], kv[0]))
@@ -164,7 +169,7 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
         for child in all_dirs_sorted:
             if child.parent == d and child != d:
                 child_page = page_path_for_dir(child)
-                link = os.path.relpath(child_page, start=page_path.parent)
+                link = _relpath(child_page, start=page_path.parent)
 
                 readme_path = None
                 for cand in ("README.md", "README.txt"):
@@ -178,7 +183,7 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
                 if readme_path is not None:
                     lines = readme_path.read_text(encoding="utf-8", errors="replace").splitlines()
                     readme_title = lines[0].lstrip("#").strip() if lines else ""
-                    readme_link = os.path.relpath(readme_path, start=page_path.parent)
+                    readme_link = _relpath(readme_path, start=page_path.parent)
 
                 child_counts = grouped.get(child, {}).get("ext_counts", {})
                 subdirs.append({
@@ -198,7 +203,7 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
             detail_link = ""
             if ext in DETAIL_EXTS:
                 detail_page = (dirs_root / r.path.parent.relative_to(root_dir) / r.path.stem).with_suffix(".md")
-                detail_link = os.path.relpath(detail_page, start=page_path.parent)
+                detail_link = _relpath(detail_page, start=page_path.parent)
 
             notes_snippet = ""
             if r.notes:
@@ -239,7 +244,7 @@ def write_directory_pages(records, out_dir: Path, root_dir: Path) -> None:
             part_page = page_path_for_dir(part)
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
 
         rendered = template.render(
@@ -295,7 +300,7 @@ def write_detail_pages_markdown(records, out_dir: Path, root_dir: Path) -> None:
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
                 if tp.exists() and tp.is_file():
-                    thumbnail = os.path.relpath(tp, start=page_path.parent)
+                    thumbnail = _relpath(tp, start=page_path.parent)
 
         # File stats
         try:
@@ -320,7 +325,7 @@ def write_detail_pages_markdown(records, out_dir: Path, root_dir: Path) -> None:
             part_page = (dirs_root / part_rel / "index.md").resolve()
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
         breadcrumbs.append({"name": r.path.name, "link": ""})
 

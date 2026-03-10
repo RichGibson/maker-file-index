@@ -51,6 +51,11 @@ def url_path(p: str) -> str:
     """
     return quote(p.replace(os.sep, "/"), safe="/")
 
+
+def _relpath(path, start=os.curdir) -> str:
+    """os.path.relpath with forward slashes (Windows-safe for HTML/MD links)."""
+    return os.path.relpath(path, start=start).replace(os.sep, "/")
+
 def _fmt_time() -> str:
     return (
         datetime.now()
@@ -109,7 +114,7 @@ def build_tree(
 
     nodes: list[dict] = []
     for c in children:
-        link = os.path.relpath(page_path_for_dir(c), start=current_page_dir)
+        link = _relpath(page_path_for_dir(c), start=current_page_dir)
         nodes.append(
             {
                 "name": c.name,
@@ -191,7 +196,7 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
     dir_cards = []
     for d in top_dirs:
         child_page = page_path_for_dir(d)
-        link = os.path.relpath(child_page, start=out_dir)
+        link = _relpath(child_page, start=out_dir)
 
         # Find first thumbnail from anywhere in the subtree
         first_thumb = ""
@@ -202,7 +207,7 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
                 continue
             for r in bucket.get("records", []):
                 if r.thumbnail_path and Path(r.thumbnail_path).exists():
-                    first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=out_dir))
+                    first_thumb = url_path(_relpath(r.thumbnail_path, start=out_dir))
                     break
             if first_thumb:
                 break
@@ -260,13 +265,13 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
         except ValueError:
             continue  # skip dirs outside root_dir
         dir_page = page_path_for_dir(d)
-        dir_link = url_path(os.path.relpath(dir_page, start=out_dir))
+        dir_link = url_path(_relpath(dir_page, start=out_dir))
         bucket = grouped.get(d, {})
         counts = _format_ext_counts(bucket.get("ext_counts", {}))
         first_thumb = ""
         for r in bucket.get("records", []):
             if r.thumbnail_path and Path(r.thumbnail_path).exists():
-                first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=out_dir))
+                first_thumb = url_path(_relpath(r.thumbnail_path, start=out_dir))
                 break
         all_files.append({
             "name": d.name,
@@ -282,7 +287,7 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
 
     for d, bucket in grouped.items():
         dir_page = page_path_for_dir(d) if d != root_dir else None
-        dir_link = url_path(os.path.relpath(dir_page, start=out_dir)) if dir_page else ""
+        dir_link = url_path(_relpath(dir_page, start=out_dir)) if dir_page else ""
 
         for r in sorted(bucket.get("records", []), key=lambda r: r.path.name.lower()):
             ext = r.path.suffix.lower().lstrip(".")
@@ -291,9 +296,9 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
             if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS or ext in CDR_EXTS:
                 rel = r.path.parent.relative_to(root_dir)
                 detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
-                file_link = url_path(os.path.relpath(detail_page, start=out_dir))
+                file_link = url_path(_relpath(detail_page, start=out_dir))
             else:
-                file_link = url_path(os.path.relpath(r.path, start=out_dir))
+                file_link = url_path(_relpath(r.path, start=out_dir))
 
             thumb = ""
             tp = r.thumbnail_path
@@ -303,7 +308,7 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
                     if not tp.is_absolute():
                         tp = (r.path.parent / tp).resolve()
                     if tp.exists() and tp.is_file():
-                        thumb = url_path(os.path.relpath(tp, start=out_dir))
+                        thumb = url_path(_relpath(tp, start=out_dir))
 
             all_files.append({
                 "name": r.path.name,
@@ -407,7 +412,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
         for child in all_dirs:
             if child.parent == d and child != d:
                 child_page = page_path_for_dir(child)
-                link = os.path.relpath(child_page, start=page_path.parent)
+                link = _relpath(child_page, start=page_path.parent)
 
                 # README discovery
                 readme_path = None
@@ -422,7 +427,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if readme_path is not None:
                     lines = readme_path.read_text(encoding="utf-8", errors="replace").splitlines()
                     readme_title = lines[0].lstrip("#").strip() if lines else ""
-                    readme_link = url_path(os.path.relpath(readme_path, start=page_path.parent))
+                    readme_link = url_path(_relpath(readme_path, start=page_path.parent))
 
                 # First thumbnail in that directory (from any record there)
                 first_thumb = ""
@@ -430,7 +435,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 child_recs = child_bucket.get("records", [])
                 for r in child_recs:
                     if r.thumbnail_path and Path(r.thumbnail_path).exists():
-                        first_thumb = url_path(os.path.relpath(r.thumbnail_path, start=page_path.parent))
+                        first_thumb = url_path(_relpath(r.thumbnail_path, start=page_path.parent))
                         break
 
                 child_ext_counts = child_bucket.get("ext_counts", {})
@@ -475,7 +480,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                     tp = (r.path.parent / tp).resolve()
 
                 if tp.exists() and tp.is_file():
-                    thumb = url_path(os.path.relpath(tp, start=page_path.parent))
+                    thumb = url_path(_relpath(tp, start=page_path.parent))
 
 
             # display: first line of notes, else filename
@@ -503,11 +508,11 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS or ext in CDR_EXTS:
                 rel = r.path.parent.relative_to(root_dir)
                 detail_page = (dirs_root / rel / r.path.stem).with_suffix(".html")
-                detail_link = url_path(os.path.relpath(detail_page, start=page_path.parent))
+                detail_link = url_path(_relpath(detail_page, start=page_path.parent))
 
             file_cards.append(
                 {
-                    "path": url_path(os.path.relpath(r.path, start=page_path.parent)),
+                    "path": url_path(_relpath(r.path, start=page_path.parent)),
                     "detail_link": detail_link,
                     "thumb": thumb,
                     "display": display,
@@ -530,7 +535,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                     current_dir=d,
             )
 
-        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+        home_link = _relpath(out_dir / "index.html", start=page_path.parent)
 
         # Breadcrumbs: children of root → ... → d (root itself omitted; Home link covers it)
         crumb_parts = []
@@ -544,7 +549,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             part_page = page_path_for_dir(part)
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
                 "is_current": part == d,
             })
 
@@ -573,15 +578,15 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 continue  # not a descendant of d
             sd_bucket = grouped.get(sd, {})
             sd_page = page_path_for_dir(sd)
-            dir_link = url_path(os.path.relpath(sd_page, start=page_path.parent))
+            dir_link = url_path(_relpath(sd_page, start=page_path.parent))
             for r in sd_bucket.get("records", []):
                 ext = r.path.suffix.lower().lstrip(".")
                 if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS or ext in CDR_EXTS:
                     r_rel = r.path.parent.relative_to(root_dir)
                     dp = (dirs_root / r_rel / r.path.stem).with_suffix(".html")
-                    flink = url_path(os.path.relpath(dp, start=page_path.parent))
+                    flink = url_path(_relpath(dp, start=page_path.parent))
                 else:
-                    flink = url_path(os.path.relpath(r.path, start=page_path.parent))
+                    flink = url_path(_relpath(r.path, start=page_path.parent))
                 fthumb = ""
                 tp = r.thumbnail_path
                 if tp:
@@ -590,7 +595,7 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                         if not tp.is_absolute():
                             tp = (r.path.parent / tp).resolve()
                         if tp.exists() and tp.is_file():
-                            fthumb = url_path(os.path.relpath(tp, start=page_path.parent))
+                            fthumb = url_path(_relpath(tp, start=page_path.parent))
                 subdir_files.append({
                     "name": r.path.name,
                     "ext": ext,
@@ -669,7 +674,7 @@ def write_stl_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
                 if tp.exists() and tp.is_file():
-                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+                    thumbnail = url_path(_relpath(tp, start=page_path.parent))
 
         # File stats
         try:
@@ -686,7 +691,7 @@ def write_stl_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             modified = ""
             file_size = ""
 
-        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+        home_link = _relpath(out_dir / "index.html", start=page_path.parent)
 
         # Breadcrumbs
         crumb_parts = []
@@ -702,7 +707,7 @@ def write_stl_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             part_page = (dirs_root / part_rel / "index.html").resolve()
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
         breadcrumbs.append({"name": r.path.name, "link": ""})
 
@@ -754,7 +759,7 @@ def write_3mf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
                 if tp.exists() and tp.is_file():
-                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+                    thumbnail = url_path(_relpath(tp, start=page_path.parent))
 
         try:
             stat = r.path.stat()
@@ -770,7 +775,7 @@ def write_3mf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             modified = ""
             file_size = ""
 
-        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+        home_link = _relpath(out_dir / "index.html", start=page_path.parent)
 
         crumb_parts = []
         cur = r.path.parent
@@ -785,7 +790,7 @@ def write_3mf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             part_page = (dirs_root / part_rel / "index.html").resolve()
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
         breadcrumbs.append({"name": r.path.name, "link": ""})
 
@@ -838,7 +843,7 @@ def write_lightburn_detail_pages_html(records, out_dir: Path, root_dir: Path) ->
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
                 if tp.exists() and tp.is_file():
-                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+                    thumbnail = url_path(_relpath(tp, start=page_path.parent))
 
         # File stats
         try:
@@ -856,7 +861,7 @@ def write_lightburn_detail_pages_html(records, out_dir: Path, root_dir: Path) ->
             file_size = ""
 
         # Home link
-        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+        home_link = _relpath(out_dir / "index.html", start=page_path.parent)
 
         # Breadcrumbs: children of root → ... → dir → filename (root omitted)
         crumb_parts = []
@@ -872,7 +877,7 @@ def write_lightburn_detail_pages_html(records, out_dir: Path, root_dir: Path) ->
             part_page = (dirs_root / part_rel / "index.html").resolve()
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
         # Add the file itself as the last crumb (no link — shown as filename in template)
         breadcrumbs.append({"name": r.path.name, "link": ""})
@@ -925,7 +930,7 @@ def write_svg_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             if str(tp) not in ("", ".", "./") and tp.exists() and tp.is_file():
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
-                thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+                thumbnail = url_path(_relpath(tp, start=page_path.parent))
 
         try:
             stat = r.path.stat()
@@ -941,7 +946,7 @@ def write_svg_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             modified = ""
             file_size = ""
 
-        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+        home_link = _relpath(out_dir / "index.html", start=page_path.parent)
 
         crumb_parts = []
         cur = r.path.parent
@@ -956,7 +961,7 @@ def write_svg_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             part_page = (dirs_root / part_rel / "index.html").resolve()
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
         breadcrumbs.append({"name": r.path.name, "link": ""})
 
@@ -1009,7 +1014,7 @@ def write_dxf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
                 if tp.exists() and tp.is_file():
-                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+                    thumbnail = url_path(_relpath(tp, start=page_path.parent))
 
         try:
             stat = r.path.stat()
@@ -1025,7 +1030,7 @@ def write_dxf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             modified = ""
             file_size = ""
 
-        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+        home_link = _relpath(out_dir / "index.html", start=page_path.parent)
 
         crumb_parts = []
         cur = r.path.parent
@@ -1040,7 +1045,7 @@ def write_dxf_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             part_page = (dirs_root / part_rel / "index.html").resolve()
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
         breadcrumbs.append({"name": r.path.name, "link": ""})
 
@@ -1089,7 +1094,7 @@ def write_scad_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
                 if tp.exists() and tp.is_file():
-                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+                    thumbnail = url_path(_relpath(tp, start=page_path.parent))
 
         try:
             stat = r.path.stat()
@@ -1105,7 +1110,7 @@ def write_scad_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None
             modified = ""
             file_size = ""
 
-        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+        home_link = _relpath(out_dir / "index.html", start=page_path.parent)
 
         crumb_parts = []
         cur = r.path.parent
@@ -1120,7 +1125,7 @@ def write_scad_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None
             part_page = (dirs_root / part_rel / "index.html").resolve()
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
         breadcrumbs.append({"name": r.path.name, "link": ""})
 
@@ -1167,7 +1172,7 @@ def write_cdr_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
                 if not tp.is_absolute():
                     tp = (r.path.parent / tp).resolve()
                 if tp.exists() and tp.is_file():
-                    thumbnail = url_path(os.path.relpath(tp, start=page_path.parent))
+                    thumbnail = url_path(_relpath(tp, start=page_path.parent))
 
         try:
             stat = r.path.stat()
@@ -1178,7 +1183,7 @@ def write_cdr_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             modified = ""
             file_size = ""
 
-        home_link = os.path.relpath(out_dir / "index.html", start=page_path.parent)
+        home_link = _relpath(out_dir / "index.html", start=page_path.parent)
 
         crumb_parts = []
         cur = r.path.parent
@@ -1193,7 +1198,7 @@ def write_cdr_detail_pages_html(records, out_dir: Path, root_dir: Path) -> None:
             part_page = (dirs_root / part_rel / "index.html").resolve()
             breadcrumbs.append({
                 "name": part.name,
-                "link": os.path.relpath(part_page, start=page_path.parent),
+                "link": _relpath(part_page, start=page_path.parent),
             })
         breadcrumbs.append({"name": r.path.name, "link": ""})
 
