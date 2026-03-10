@@ -4,13 +4,25 @@ This guide covers everything you need to work on `maker-file-index` — project 
 
 ---
 
-## Prerequisites
+## Prerequisites: Python environment
 
-All development uses the `drinkbotos` conda environment. Make sure it's active or prefix commands with `conda run -n drinkbotos`.
+You need Python 3.12+ and the project's dependencies. A conda environment is a good way to keep this isolated from your system Python. Here's how to create one and get started:
 
 ```bash
-conda activate drinkbotos
+# Create a new environment named myenv with Python 3.12
+conda create -n myenv python=3.12
+
+# Activate it — you'll need to do this each time you open a new terminal
+conda activate myenv
+
+# Install the package in editable mode (run from the repo root)
+pip install -e .
+
+# Install pytest for running tests
+pip install pytest
 ```
+
+From this point on, all commands in this guide assume your environment is active. If you open a new terminal, run `conda activate myenv` again before doing anything else.
 
 ---
 
@@ -79,7 +91,7 @@ maker-file-index/
 
 ```bash
 # From the repo root — installs the package in editable mode
-conda run -n drinkbotos pip install -e .
+pip install -e .
 ```
 
 You only need to reinstall when you change `pyproject.toml` (entry points, dependencies). Editing Python files takes effect immediately.
@@ -87,8 +99,8 @@ You only need to reinstall when you change `pyproject.toml` (entry points, depen
 ### If something feels broken
 
 ```bash
-conda run -n drinkbotos pip uninstall maker-file-index
-conda run -n drinkbotos pip install -e .
+pip uninstall maker-file-index
+pip install -e .
 ```
 
 ---
@@ -97,22 +109,22 @@ conda run -n drinkbotos pip install -e .
 
 ```bash
 # Against the sample files (quickest sanity check)
-conda run -n drinkbotos maker-file-index files/
+maker-file-index files/
 
 # Against any directory
-conda run -n drinkbotos maker-file-index /path/to/files/
+maker-file-index /path/to/files/
 
 # Custom output location
-conda run -n drinkbotos maker-file-index /path/to/files/ --output-dir /my/output/
+maker-file-index /path/to/files/ --output-dir /my/output/
 
 # Watch for changes and rebuild automatically
-conda run -n drinkbotos maker-file-index files/ --watch
+maker-file-index files/ --watch
 
 # Without installing (dev mode)
-conda run -n drinkbotos python -m maker_file_index.cli files/
+python -m maker_file_index.cli files/
 
 # Show which plugin handles each file
-conda run -n drinkbotos maker-file-index files/ --debug-plugins
+maker-file-index files/ --debug-plugins
 ```
 
 Output goes to `maker_file_data/` by default (never touches your source files).
@@ -123,22 +135,22 @@ Output goes to `maker_file_data/` by default (never touches your source files).
 
 ```bash
 # Run all tests
-conda run -n drinkbotos python -m pytest tests/
+python -m pytest tests/
 
 # Verbose — see each test name
-conda run -n drinkbotos python -m pytest tests/ -v
+python -m pytest tests/ -v
 
 # Just one test file
-conda run -n drinkbotos python -m pytest tests/test_plugins.py
+python -m pytest tests/test_plugins.py
 
 # Just one test
-conda run -n drinkbotos python -m pytest tests/test_plugins.py::test_stl_returns_no_error
+python -m pytest tests/test_plugins.py::test_stl_returns_no_error
 
 # Stop on first failure
-conda run -n drinkbotos python -m pytest tests/ -x
+python -m pytest tests/ -x
 
 # Quiet summary only
-conda run -n drinkbotos python -m pytest tests/ -q
+python -m pytest tests/ -q
 ```
 
 Tests run automatically on GitHub Actions for every push and pull request to `main`.
@@ -233,11 +245,11 @@ docs: rewrite README_dev as contributor guide
 git log --oneline
 
 # Check what plugins are loaded
-conda run -n drinkbotos python -c "
+python -c "
 from maker_file_index.plugins.loader import load_plugins
 print([p.name for p in load_plugins()])
 "
 
 # Run against your actual files directory
-conda run -n drinkbotos maker-file-index ~/Documents/LaserFiles/ --watch
+maker-file-index ~/Documents/LaserFiles/ --watch
 ```
