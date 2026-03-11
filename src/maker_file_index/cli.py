@@ -172,10 +172,12 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if not args.watch:
+        t0 = time.monotonic()
         records = _run_once(**run_kwargs)
         if not records:
             return 2
-        print("\nDone.")
+        elapsed = time.monotonic() - t0
+        print(f"\nDone in {elapsed:.1f}s.")
         print(str(notes_path))
         print(str(out_dir / "dirs" / "index.md"))
         print(str(out_dir / "index.html"))
