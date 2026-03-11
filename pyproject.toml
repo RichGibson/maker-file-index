@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maker-file-index"
-version = "0.1.3"
+version = "0.1.4"
 description = "Index maker files (lbrn, dxf, stl, 3mf, scad, and more) with thumbnails and notes."
 readme = "README.md"
 requires-python = ">=3.10"

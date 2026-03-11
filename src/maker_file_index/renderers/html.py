@@ -147,11 +147,15 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
     template = env.get_template("landing.html.j2")
 
     grouped = group_by_directory(records)
+    # Resolve all directory keys so path comparisons work correctly with root_dir
+    grouped = {k.resolve(): v for k, v in grouped.items()}
 
     # Top-level dirs: immediate children of root_dir that contain any files anywhere
     # in their subtree. Walk up from every directory in grouped to find them.
     top_dirs_set: set[Path] = set()
     for d in grouped:
+        if d == root_dir:
+            continue  # root-level files are shown as individual cards, not a dir card
         cur = d
         while cur != root_dir and cur.parent != cur:
             if cur.parent == root_dir:
@@ -221,6 +225,45 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
             "counts": _format_ext_counts(agg_ext_counts),
             "labels": _exts_to_labels(dir_exts),
             "mtime": int(_subtree_mtime(d)),
+        })
+
+    # File cards for files sitting directly in root_dir (shown alongside dir cards)
+    root_file_cards = []
+    for r in sorted(grouped.get(root_dir, {}).get("records", []), key=lambda r: r.path.name.lower()):
+        thumb = ""
+        tp = r.thumbnail_path
+        if tp:
+            tp = Path(tp)
+            if str(tp) in ("", ".", "./"):
+                tp = None
+        if tp:
+            if not tp.is_absolute():
+                tp = (r.path.parent / tp).resolve()
+            if tp.exists() and tp.is_file():
+                thumb = url_path(_relpath(tp, start=out_dir))
+        ext = r.path.suffix.lower().lstrip(".")
+        display = r.path.name
+        if r.notes:
+            first_line = r.notes.splitlines()[0].strip()
+            if first_line:
+                display = first_line
+        try:
+            file_mtime = int(r.path.stat().st_mtime)
+        except OSError:
+            file_mtime = 0
+        detail_link = ""
+        if ext in LIGHTBURN_EXTS or ext in STL_EXTS or ext in THREE_MF_EXTS or ext in SVG_EXTS or ext in DXF_EXTS or ext in SCAD_EXTS or ext in CDR_EXTS:
+            detail_page = (dirs_root / r.path.stem).with_suffix(".html")
+            detail_link = url_path(_relpath(detail_page, start=out_dir))
+        root_file_cards.append({
+            "thumb": thumb,
+            "detail_link": detail_link,
+            "path": url_path(_relpath(r.path, start=out_dir)),
+            "display": display,
+            "ext": ext,
+            "labels": _exts_to_labels([ext]),
+            "error": r.error or "",
+            "mtime": file_mtime,
         })
 
     # Summary stats
@@ -355,6 +398,7 @@ def write_landing_page_html(records, out_dir: Path, root_dir: Path) -> None:
         total_dirs=total_dirs,
         type_stats=type_stats,
         dirs=dir_cards,
+        root_files=root_file_cards,
         all_files_json=json.dumps(all_files),
         tree_data=tree_data,
         page_types=page_types,
@@ -382,6 +426,8 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
     generated_at = _fmt_time()
 
     grouped = group_by_directory(records)
+    # Resolve all directory keys so path comparisons work correctly with root_dir
+    grouped = {k.resolve(): v for k, v in grouped.items()}
 
     # all dirs we know about (plus ancestors up to root)
     all_dirs = set(grouped.keys())
@@ -402,8 +448,8 @@ def write_directory_pages_html(records, out_dir: Path, root_dir: Path) -> None:
         return (dirs_root / rel / "index.html").resolve()
 
     for d in all_dirs:
-        if d == root_dir:
-            continue  # landing page (index.html) serves as home; no dirs/index.html needed
+        if d == root_dir and root_dir not in grouped:
+            continue  # landing page (index.html) serves as home; skip unless files live directly here
         page_path = page_path_for_dir(d)
         page_path.parent.mkdir(parents=True, exist_ok=True)
 

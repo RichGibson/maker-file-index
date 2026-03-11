@@ -107,20 +107,48 @@
       </div>
     </div>
 
-    <div class="grid" id="dir-grid">
-      {% for d in dirs %}
-      <div class="card" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}" data-mtime="{{ d.mtime }}">
-        {% if d.first_thumb %}
-          <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
-        {% else %}
-          <a href="{{ d.link }}"><div class="no-thumb">&#128193;</div></a>
-        {% endif %}
-        <div class="card-body">
-          <div class="card-title"><a href="{{ d.link }}">{{ d.name }}</a></div>
-          <div class="card-meta">{{ d.counts }}</div>
+    <div id="card-sections">
+      {% if dirs %}
+      <div class="section-block">
+        {% if root_files %}<h2 class="section-heading">Directories</h2>{% endif %}
+        <div class="grid" id="dirs-grid">
+          {% for d in dirs %}
+          <div class="card card-dir" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}" data-mtime="{{ d.mtime }}">
+            {% if d.first_thumb %}
+              <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
+            {% else %}
+              <a href="{{ d.link }}"><div class="no-thumb">&#128193;</div></a>
+            {% endif %}
+            <div class="card-body">
+              <div class="card-title"><a href="{{ d.link }}">{{ d.name }}</a></div>
+              <div class="card-meta">{{ d.counts }}</div>
+            </div>
+          </div>
+          {% endfor %}
         </div>
       </div>
-      {% endfor %}
+      {% endif %}
+      {% if root_files %}
+      <div class="section-block">
+        {% if dirs %}<h2 class="section-heading">Files</h2>{% endif %}
+        <div class="grid" id="files-grid">
+          {% for f in root_files %}
+          {%- set card_link = f.detail_link if f.detail_link else f.path -%}
+          <div class="card card-file{% if f.error %} has-error{% endif %}" data-name="{{ f.display | lower }} {{ f.ext }}" data-labels="{{ f.labels }}" data-mtime="{{ f.mtime }}">
+            {% if f.thumb %}
+              <a href="{{ card_link }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
+            {% else %}
+              <a href="{{ card_link }}"><div class="no-thumb">{{ f.ext | upper }}</div></a>
+            {% endif %}
+            <div class="card-body">
+              <div class="card-title"><a href="{{ card_link }}">{{ f.display }}</a></div>
+              {% if f.error %}<div class="error-badge">error</div>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </div>
   </main>
 </div>
@@ -164,7 +192,8 @@ function setSort(key) {
   }
   localStorage.setItem(SORT_KEY, currentSort + '-' + currentDir);
   updateSortButtons();
-  applySortToGrid(document.getElementById('dir-grid'));
+  applySortToGrid(document.getElementById('dirs-grid'));
+  applySortToGrid(document.getElementById('files-grid'));
 }
 
 function applySortToGrid(grid) {
@@ -184,13 +213,14 @@ function applySortToGrid(grid) {
 
 (function() {
   updateSortButtons();
-  applySortToGrid(document.getElementById('dir-grid'));
+  applySortToGrid(document.getElementById('dirs-grid'));
+  applySortToGrid(document.getElementById('files-grid'));
 })();
 var BADGE_CLS = {lbrn2:'badge-lbrn2',lbrn:'badge-lbrn',stl:'badge-stl',scad:'badge-scad','3mf':'badge-3mf',svg:'badge-svg',dxf:'badge-dxf',cdr:'badge-cdr'};
 
 function applyFilters() {
   var q = (document.getElementById('page-filter') ? document.getElementById('page-filter').value : '').toLowerCase().trim();
-  document.querySelectorAll('#dir-grid .card').forEach(function(card) {
+  document.querySelectorAll('#dirs-grid .card, #files-grid .card').forEach(function(card) {
     var nameMatch = q === '' || card.dataset.name.includes(q);
     var typeMatch = !activeType || (card.dataset.labels || '').split(' ').includes(activeType);
     card.classList.toggle('hidden', !nameMatch || !typeMatch);

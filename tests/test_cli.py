@@ -1,6 +1,7 @@
 """CLI smoke tests — run maker-file-index against the sample files/ directory."""
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -69,3 +70,48 @@ def test_no_files_returns_error_code(tmp_path):
     result = run_cli(str(empty))
     assert result.returncode == 2
     assert "No supported files" in result.stderr
+
+
+def test_flat_directory_indexes_root_files(tmp_path):
+    """Files directly in the scan root (no subdirectories) must produce a
+    dirs/index.html page and a landing card with the correct data-labels so
+    the type-filter buttons work."""
+    src = tmp_path / "src"
+    src.mkdir()
+    shutil.copy(str(FILES_DIR / "testfile.stl"), str(src / "testfile.stl"))
+
+    out = tmp_path / "out"
+    result = run_cli(str(src), "--output-dir", str(out))
+    assert result.returncode == 0, result.stderr
+
+    # dirs/index.html must be generated — previously it was skipped for root
+    assert (out / "dirs" / "index.html").exists(), \
+        "dirs/index.html not generated for flat directory"
+
+    # Landing page must contain a card whose data-labels includes stl so the
+    # STL filter button actually shows something
+    landing = (out / "index.html").read_text(encoding="utf-8")
+    assert "stl" in landing, \
+        "STL label missing from landing page — type filter would show 0 cards"
+
+
+def test_mixed_layout_indexes_all_files(tmp_path):
+    """Files at root level AND inside a subdirectory must all get detail pages."""
+    src = tmp_path / "src"
+    subdir = src / "models"
+    subdir.mkdir(parents=True)
+
+    # File directly in the scan root
+    shutil.copy(str(FILES_DIR / "testfile.stl"), str(src / "root_file.stl"))
+    # File one level deep
+    shutil.copy(str(FILES_DIR / "princess_donut.stl"), str(subdir / "sub_file.stl"))
+
+    out = tmp_path / "out"
+    result = run_cli(str(src), "--output-dir", str(out))
+    assert result.returncode == 0, result.stderr
+
+    html_names = {p.name for p in (out / "dirs").rglob("*.html")}
+    assert "root_file.html" in html_names, \
+        "No detail page for file sitting directly in the scan root"
+    assert "sub_file.html" in html_names, \
+        "No detail page for file in subdirectory"
