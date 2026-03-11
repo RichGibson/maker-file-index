@@ -118,7 +118,7 @@
       <h2>Directories</h2>
       <div class="grid" id="dir-grid">
         {% for d in subdirs %}
-        <div class="card" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}" data-mtime="{{ d.mtime }}">
+        <div class="card card-dir" data-name="{{ d.name | lower }}" data-labels="{{ d.labels }}" data-mtime="{{ d.mtime }}">
           {% if d.first_thumb %}
             <a href="{{ d.link }}"><img class="thumb" src="{{ d.first_thumb }}" alt="" /></a>
           {% else %}
@@ -142,7 +142,7 @@
       <h2>Files</h2>
       <div class="grid" id="file-grid">
         {% for f in file_cards %}
-        <div class="card{% if f.error %} has-error{% endif %}" data-name="{{ f.display | lower }} {{ f.ext }}" data-labels="{{ f.labels }}" data-mtime="{{ f.mtime }}">
+        <div class="card card-file{% if f.error %} has-error{% endif %}" data-name="{{ f.display | lower }} {{ f.ext }}" data-labels="{{ f.labels }}" data-mtime="{{ f.mtime }}">
           {%- set card_link = f.detail_link if f.detail_link else f.path -%}
           {% if f.thumb %}
             <a href="{{ card_link }}"><img class="thumb" src="{{ f.thumb }}" alt="" /></a>
@@ -321,7 +321,7 @@ function renderSubdirResults(q) {
     var thumb = f.thumb ? '<a href="' + f.link + '"><img class="thumb" src="' + f.thumb + '" alt="" /></a>'
                         : '<a href="' + f.link + '"><div class="no-thumb"><span class="badge ' + extCls + '">' + (f.ext || '?') + '</span></div></a>';
     var dirLink = '<a href="' + f.dir_link + '" style="color:var(--text-muted);font-size:12px;">' + f.dir_name + '/</a>';
-    return '<div class="card">' + thumb +
+    return '<div class="card card-file">' + thumb +
       '<div class="label"><a href="' + f.link + '"><strong>' + f.name + '</strong></a></div>' +
       '<div class="sub"><span class="badge ' + extCls + '">' + (f.ext || '?') + '</span></div>' +
       '<div class="sub">' + dirLink + '</div>' +
