@@ -152,8 +152,34 @@ Print the version and exit.
 ### Installed CLI tools
 
 ```bash
+project-info [directory]             # File inventory: counts, sizes, maker types, recent files
 lightburn-extract-notes <filename>   # Extract notes from a LightBurn file
 lightburn-extract-text <filename>    # Extract text strings from a LightBurn file
+```
+
+### `project-info`
+
+Fast, lightweight file inventory for a maker project directory. Prints total file count and size, breakdown by extension (with maker file types highlighted), and the 5 most recently modified files.
+
+```bash
+project-info                         # scan current directory
+project-info /path/to/files/
+project-info /path/to/files/ --no-recursive
+project-info /path/to/files/ --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `directory` | Directory to scan (default: `.`) |
+| `--no-recursive` | Do not scan subdirectories |
+| `--json` | Emit machine-readable JSON |
+
+Code and text files (`.py`, `.js`, `.html`, `.css`, `.md`, etc.) also show a total line count.
+
+Install directly from GitHub (no PyPI required):
+
+```bash
+pip install git+https://github.com/richgibson/maker-file-index.git
 ```
 
 ### scripts/lightburn_extract.py
