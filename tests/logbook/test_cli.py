@@ -41,3 +41,22 @@ def test_rebuild_preserves_notes(tmp_path):
     page.write_text(page.read_text().replace("<!-- notes:start -->✎", "<!-- notes:start -->walnut too dark"))
     main(args + ["--day", "2026-11-18"])
     assert "walnut too dark" in page.read_text()
+
+
+def test_default_builds_yesterday_too(tmp_path):
+    from datetime import date, timedelta
+    y = (date.today() - timedelta(days=1)).isoformat()
+    log_dir, args = setup(tmp_path, days=(y,))
+    main(args)
+    assert (log_dir / f"{y}.md").exists()
+
+
+def test_damaged_page_is_skipped(tmp_path, capsys):
+    log_dir, args = setup(tmp_path)
+    main(args + ["--day", "2026-11-18"])
+    page = log_dir / "2026-11-18.md"
+    damaged = page.read_text().replace("<!-- notes:end -->", "", 1).replace("<!-- notes:start -->✎", "<!-- notes:start -->precious", 1)
+    page.write_text(damaged)
+    main(args + ["--day", "2026-11-18"])
+    assert page.read_text() == damaged
+    assert "skipped" in capsys.readouterr().out

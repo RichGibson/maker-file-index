@@ -53,3 +53,16 @@ def test_match_within_tolerance():
     stored = {T: [Setting(14.0, 28.0, 28.0)]}
     assert match_stream(datetime(2026, 11, 18, 20, 45, 45), stored) == [Setting(14.0, 28.0, 28.0)]
     assert match_stream(datetime(2026, 11, 18, 20, 46, 0), stored) is None
+
+
+def test_empty_flush_then_full_flush_updates(tmp_path):
+    from maker_file_index.logbook.debuglog import read_stream_jobs
+    log = tmp_path / "LightBurnLog.txt"
+    head = '20:45:12.576  D: "LightBurn Pro 2.1.03"   "Wed Nov 18 2026"\n20:45:45.124  D: Protocol::GenerateCuts time: 0\n'
+    log.write_text(head)
+    for j in read_stream_jobs(log):
+        save_stream_job(tmp_path, j)
+    log.write_text(head + f'20:45:45.604  D: O: "{stream((14, 28)).hex()}"\n')
+    for j in read_stream_jobs(log):
+        save_stream_job(tmp_path, j)
+    assert load_stored(tmp_path, date(2026, 11, 18))[T] == [Setting(14.0, 28.0, 28.0)]

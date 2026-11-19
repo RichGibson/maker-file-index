@@ -72,6 +72,12 @@ def render_day(day: date, jobs: list[Job], stored: dict[datetime, list[Setting]]
     number = 0
     projects: list[str] = []
     tests = []
+    seen: dict[str, int] = {}
+
+    def unique(stem: str) -> str:
+        seen[stem] = seen.get(stem, 0) + 1
+        return stem if seen[stem] == 1 else f"{stem}-{seen[stem]}"
+
     for group in sessions(day_jobs):
         rows, grids, files = [], [], {}
         for j in group:
@@ -82,10 +88,10 @@ def render_day(day: date, jobs: list[Job], stored: dict[datetime, list[Setting]]
                 projects.append(label)
             g = grid(settings) if settings else None
             if g:
-                grids.append({"time": f"{j.when:%H:%M:%S}", "id": f"test-{j.when:%H%M%S}", "speeds": [_num(v) for v in g[0]],
+                grids.append({"time": f"{j.when:%H:%M:%S}", "id": unique(f"test-{j.when:%H%M%S}"), "speeds": [_num(v) for v in g[0]],
                               "powers": [_num(p) for p in g[1]]})
                 tests.append(f"{j.when:%H:%M:%S}")
-            rows.append({"n": number, "time": f"{j.when:%H:%M:%S}", "id": f"job-{j.when:%H%M%S}",
+            rows.append({"n": number, "time": f"{j.when:%H:%M:%S}", "id": unique(f"job-{j.when:%H%M%S}"),
                          "project": label, "settings": _settings_summary(settings)})
             if j.project is not None and label not in files:
                 v = versions(j.project, j.when)
@@ -100,6 +106,24 @@ def render_day(day: date, jobs: list[Job], stored: dict[datetime, list[Setting]]
         mark=GENERATED_MARK, day=day, title=day.strftime("%a %b %-d, %Y"),
         device=day_jobs[0].device if day_jobs else "", sessions=groups, projects=projects,
         tests=tests, total=len(day_jobs), empty=EMPTY_NOTE)
+
+
+_STARTS = re.compile(r"<!-- notes(?::([\w-]+))?:start -->")
+_ENDS = re.compile(r"<!-- notes(?::([\w-]+))?:end -->")
+_TEXT_AFTER_END = re.compile(r"<!-- notes(?::[\w-]+)?:end -->[ \t]*\S")
+
+
+def unsafe_to_merge(existing: str) -> str | None:
+    """Why rebuilding this page could lose hand-typed text, or None if it is safe."""
+    starts = [m.group(1) or "day" for m in _STARTS.finditer(existing)]
+    ends = [m.group(1) or "day" for m in _ENDS.finditer(existing)]
+    if sorted(starts) != sorted(ends):
+        return "a notes start/end marker is missing or damaged"
+    if len(set(starts)) != len(starts):
+        return "two notes blocks share the same id"
+    if _TEXT_AFTER_END.search(existing):
+        return "text was typed after a notes end marker"
+    return None
 
 
 def merge_notes(existing: str, generated: str) -> str:

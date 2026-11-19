@@ -9,6 +9,7 @@ from pathlib import Path
 
 _TIME = re.compile(r"^(\d\d):(\d\d):(\d\d)\.(\d{3})\s")
 _HEADER_DATE = re.compile(r'"\w{3} (\w{3} \d{1,2} \d{4})"')
+_ROLLOVER = timedelta(hours=12)  # small backward steps are out-of-order lines, not midnight
 _OUT = re.compile(r' O: "([0-9a-fA-F]*)("?)')
 
 
@@ -31,15 +32,16 @@ def read_stream_jobs(path: Path) -> list[StreamJob]:
     jobs: list[StreamJob] = []
 
     for line in text.splitlines():
-        if day is None:
-            m = _HEADER_DATE.search(line)
-            if m:
-                day = datetime.strptime(m.group(1), "%b %d %Y")
+        m = _HEADER_DATE.search(line)
+        if m:
+            # first line, or LightBurn restarted and wrote a new header
+            day = datetime.strptime(m.group(1), "%b %d %Y")
+            last_time = None
         t = _TIME.match(line)
         if t and day is not None:
             h, mi, s, ms = (int(x) for x in t.groups())
             now = timedelta(hours=h, minutes=mi, seconds=s, milliseconds=ms)
-            if last_time is not None and now < last_time:
+            if last_time is not None and now < last_time - _ROLLOVER:
                 day += timedelta(days=1)
             last_time = now
         if "Protocol::GenerateCuts" in line and day is not None and last_time is not None:
@@ -55,4 +57,7 @@ def read_stream_jobs(path: Path) -> list[StreamJob]:
 
     for job in jobs:
         job.raw = bytes(job._buf)
+    if jobs:
+        # the log is flushed in batches; the newest job may still be arriving
+        jobs[-1].truncated = True
     return jobs

@@ -74,3 +74,29 @@ def test_grid_cell_edits_survive_merge():
     edited = generated.replace("| **14 mm/s** | ✎ | ✎ | ✎ |", "| **14 mm/s** | no | no | THROUGH |", 1)
     assert edited != generated
     assert "THROUGH" in merge_notes(edited, generated)
+
+
+def test_unsafe_when_end_marker_damaged():
+    from maker_file_index.logbook.daypage import unsafe_to_merge
+    generated = page([job("20:45:45")])
+    assert unsafe_to_merge(generated) is None
+    assert unsafe_to_merge(generated.replace("<!-- notes:job-204545:end -->", "<!-- notes:job-204545:en", 1))
+
+
+def test_unsafe_when_text_after_end_marker():
+    from maker_file_index.logbook.daypage import unsafe_to_merge
+    generated = page([job("20:45:45")])
+    assert unsafe_to_merge(generated.replace("<!-- notes:job-204545:end -->", "<!-- notes:job-204545:end --> cut through", 1))
+
+
+def test_unsafe_when_duplicate_ids():
+    from maker_file_index.logbook.daypage import unsafe_to_merge
+    block = "<!-- notes:job-1:start -->a<!-- notes:job-1:end -->\n"
+    assert unsafe_to_merge(GENERATED_MARK + "\n" + block + block)
+
+
+def test_same_second_jobs_get_unique_ids():
+    from maker_file_index.logbook.daypage import unsafe_to_merge
+    out = page([job("19:16:11"), job("19:16:11")])
+    assert "notes:job-191611:start" in out and "notes:job-191611-2:start" in out
+    assert unsafe_to_merge(out) is None
