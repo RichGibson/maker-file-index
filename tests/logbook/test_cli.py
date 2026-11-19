@@ -82,3 +82,14 @@ def test_build_saves_thumbnail(tmp_path):
     thumbs = list((log_dir / "images" / "thumbs").glob("*.png"))
     assert len(thumbs) == 1 and thumbs[0].read_bytes() == png
     assert f"(images/thumbs/{thumbs[0].name})" in (log_dir / "2026-11-18.md").read_text()
+
+
+def test_index_about_notes_survive_rebuild(tmp_path):
+    log_dir, args = setup(tmp_path)
+    main(args + ["--all"])
+    index = log_dir / "index.md"
+    text = index.read_text()
+    assert "## About this laser" in text
+    index.write_text(text.replace("<!-- notes:about:start -->", "<!-- notes:about:start -->\nRuida installed Aug 8, 2024"))
+    main(args + ["--all"])
+    assert "Ruida installed Aug 8, 2024" in index.read_text()

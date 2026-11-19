@@ -58,6 +58,7 @@ def render_index(by_day: dict[date, list[Job]], stored_by_day: dict[date, dict[d
     lines = [GENERATED_MARK, "# Laser log", ""]
     if days:
         lines += [f"{len(days):,} days · {total:,} jobs · {days[-1]:%b %-d, %Y} to {days[0]:%b %-d, %Y}", ""]
+    lines += ["## About this laser", "", "<!-- notes:about:start -->", "<!-- notes:about:end -->", ""]
     month = None
     for d in days:
         if (d.year, d.month) != month:
