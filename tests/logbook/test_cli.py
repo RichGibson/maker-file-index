@@ -31,7 +31,7 @@ def test_build_skips_hand_written_page(tmp_path, capsys):
 def test_build_all_backfills(tmp_path):
     log_dir, args = setup(tmp_path, days=("2026-11-16", "2026-11-17", "2026-11-18"))
     main(args + ["--all"])
-    assert sorted(p.name for p in log_dir.glob("*.md")) == ["2026-11-16.md", "2026-11-17.md", "2026-11-18.md"]
+    assert sorted(p.name for p in log_dir.glob("2*.md")) == ["2026-11-16.md", "2026-11-17.md", "2026-11-18.md"]
 
 
 def test_rebuild_preserves_notes(tmp_path):
@@ -60,3 +60,11 @@ def test_damaged_page_is_skipped(tmp_path, capsys):
     main(args + ["--day", "2026-11-18"])
     assert page.read_text() == damaged
     assert "skipped" in capsys.readouterr().out
+
+
+def test_build_writes_index(tmp_path):
+    log_dir, args = setup(tmp_path, days=("2026-11-16", "2026-11-18"))
+    main(args + ["--all"])
+    index = (log_dir / "index.md").read_text()
+    assert index.startswith(GENERATED_MARK)
+    assert index.index("2026-11-18.md") < index.index("2026-11-16.md")

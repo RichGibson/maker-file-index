@@ -316,7 +316,7 @@ conda run -n drinkbotos laser-log build --log-dir ~/projects/laserblog/files/log
 conda run -n drinkbotos laser-log build --log-dir ~/projects/laserblog/files/log --day 2026-11-18
 ```
 
-Output: `log/YYYY-MM-DD.md` and decoded job records in `log/jobs/YYYY-MM-DD/HHMMSS.json` (kept even if LightBurn's log is cleared).
+Output: `log/index.md` (every day, newest first, with a one-line summary and the first line of that day's notes), `log/YYYY-MM-DD.md`, and decoded job records in `log/jobs/YYYY-MM-DD/HHMMSS.json` (kept even if LightBurn's log is cleared).
 
 Notes go between `<!-- notes:...:start -->` and `<!-- notes:...:end -->` markers; rebuilding keeps them. Pages that don't start with `<!-- generated-by: maker-file-index laser-log -->` are never overwritten.
 
