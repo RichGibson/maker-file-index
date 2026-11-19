@@ -1,0 +1,79 @@
+{{ mark }}
+---
+date: {{ day.isoformat() }}
+device: {{ device }}
+sessions:
+{% for s in sessions %}
+  - start: "{{ s.start }}"
+    end: "{{ s.end }}"
+    jobs: {{ s.count }}
+{% endfor %}
+projects:
+{% for p in projects %}
+  - "{{ p }}"
+{% endfor %}
+tests:
+{% for t in tests %}
+  - time: "{{ t }}"
+    kind: grid
+{% endfor %}
+---
+
+# {{ title }}
+
+**{{ total }} job{{ "s" if total != 1 }} · {{ sessions|length }} session{{ "s" if sessions|length != 1 }} · {{ projects|length }} project{{ "s" if projects|length != 1 }}**
+
+## Notes
+
+<!-- notes:start -->{{ empty }}<!-- notes:end -->
+
+{% for s in sessions %}
+## Session {{ s.start }} to {{ s.end }} · {{ s.count }} job{{ "s" if s.count != 1 }}
+
+| # | Time | Project | Settings sent |
+|---|---|---|---|
+{% for r in s.rows %}
+| {{ r.n }} | {{ r.time }} | `{{ r.project }}` | {{ r.settings }} |
+{% endfor %}
+
+**Job notes**
+
+{% for r in s.rows %}
+- {{ r.time }}: <!-- notes:{{ r.id }}:start -->{{ empty }}<!-- notes:{{ r.id }}:end -->
+{% endfor %}
+
+{% for g in s.grids %}
+### Material test grid, {{ g.time }}
+
+Fill in the cells; this table is kept when the page is rebuilt.
+
+<!-- notes:{{ g.id }}:start -->
+| Speed ↓ / Power → |{% for p in g.powers %} {{ p }}% |{% endfor %}
+
+|---|{% for p in g.powers %}---|{% endfor %}
+
+{% for v in g.speeds %}
+| **{{ v }} mm/s** |{% for p in g.powers %} ✎ |{% endfor %}
+
+{% endfor %}
+<!-- notes:{{ g.id }}:end -->
+
+{% endfor %}
+{% for name, f in s.files.items() %}
+### Layers: `{{ name }}`
+
+{% if f.source == "missing" %}
+file no longer at this path, and no saved version found
+{% else %}
+Source: {{ f.source }}{% if f.source == "current file" %} (the file as it is now; may differ from what was cut){% endif %}
+
+
+| Layer | Mode | Speed | Power | Passes | Shapes |
+|---|---|---|---|---|---|
+{% for l in f.layers %}
+| {{ l.name }} | {{ l.mode }} | {{ l.speed }} mm/s | {{ l.power }} | {{ l.passes }} | {{ l.shapes }} |
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endfor %}
