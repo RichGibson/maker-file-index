@@ -287,6 +287,8 @@ class _CutSetting:
     interval: float | None = None
     overscan: float | None = None
     scan_opt: str | None = None
+    max_power: float | None = None
+    min_power: float | None = None
 
 
 @dataclass
@@ -351,6 +353,8 @@ def _lb_parse_cut_settings(root: ET.Element) -> dict[int, _CutSetting]:
             interval=_lb_try_float(values.get("interval")),
             overscan=_lb_try_float(values.get("overscan")),
             scan_opt=values.get("scanOpt"),
+            max_power=_lb_try_float(values.get("maxPower")),
+            min_power=_lb_try_float(values.get("minPower")),
         )
     return settings
 
