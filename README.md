@@ -301,3 +301,23 @@ The `--debug` flag is useful when a file has a `Thumbnail Source` in the XML but
 | OpenSCAD | `.scad` | Rendered via OpenSCAD CLI *(requires OpenSCAD installed separately)* | Yes |
 | DXF | `.dxf` | Rendered via ezdxf + matplotlib | Yes |
 | Corel Draw | `.cdr` | Embedded in file | — |
+
+## Laser logbook (`laser-log`)
+
+Builds a permanent Markdown page per day of laser use from LightBurn's own records:
+
+- `~/Documents/LightBurnJobs.csv`: every job LightBurn has sent (time, device, project).
+- `~/Documents/LightBurnLog.txt`: with debug logging on, holds the bytes sent to a Ruida controller; `laser-log` decodes the speed and power actually used.
+- Project files and their git history (for the layer settings at the time of each job).
+
+```bash
+conda run -n drinkbotos laser-log build --log-dir ~/projects/laserblog/files/log            # today
+conda run -n drinkbotos laser-log build --log-dir ~/projects/laserblog/files/log --all      # every day
+conda run -n drinkbotos laser-log build --log-dir ~/projects/laserblog/files/log --day 2026-11-18
+```
+
+Output: `log/YYYY-MM-DD.md` and decoded job records in `log/jobs/YYYY-MM-DD/HHMMSS.json` (kept even if LightBurn's log is cleared).
+
+Notes go between `<!-- notes:...:start -->` and `<!-- notes:...:end -->` markers; rebuilding keeps them. Pages that don't start with `<!-- generated-by: maker-file-index laser-log -->` are never overwritten.
+
+A launchd agent (`~/Library/LaunchAgents/com.richgibson.laser-log.plist`) rebuilds today's page every 5 minutes; output in `~/Library/Logs/laser-log.log`.

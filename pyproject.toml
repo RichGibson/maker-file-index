@@ -23,6 +23,7 @@ dependencies = [
 [project.scripts]
 maker-file-index = "maker_file_index.cli:main"
 project-info = "maker_file_index.project_info:main"
+laser-log = "maker_file_index.logbook.cli:main"
 lightburn-extract-notes = "laser_tools.lightburn.extract_notes:main"
 lightburn-extract-text  = "laser_tools.lightburn.extract_text:main"
 
