@@ -62,6 +62,10 @@ Fill in the cells; this table is kept when the page is rebuilt.
 {% for name, f in s.files.items() %}
 ### Layers: `{{ name }}`
 
+{% if f.thumb %}
+![{{ f.alt }} thumbnail]({{ f.thumb }})
+
+{% endif %}
 {% if f.source == "missing" %}
 file no longer at this path, and no saved version found
 {% else %}

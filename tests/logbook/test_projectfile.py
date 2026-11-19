@@ -5,9 +5,14 @@ from datetime import datetime
 from maker_file_index.logbook.projectfile import FileVersion, Layer, layers_from_bytes, version_at
 
 
-def lbrn(speed, power, shapes=1):
+PNG = b"\x89PNG\r\n\x1a\nfake"
+
+
+def lbrn(speed, power, shapes=1, thumb=None):
+    import base64
     shape = '<Shape Type="Path" CutIndex="0"/>' * shapes
-    return (f'<LightBurnProject><CutSetting type="Cut"><index Value="0"/><name Value="C00"/>'
+    t = f'<Thumbnail Source="{base64.b64encode(thumb).decode()}"/>' if thumb else ""
+    return (f'<LightBurnProject>{t}<CutSetting type="Cut"><index Value="0"/><name Value="C00"/>'
             f'<speed Value="{speed}"/><maxPower Value="{power}"/><minPower Value="{power}"/></CutSetting>'
             f'{shape}</LightBurnProject>').encode()
 
@@ -48,3 +53,15 @@ def test_version_at_prefers_newer_backup(tmp_path):
 
 def test_missing_file(tmp_path):
     assert version_at(tmp_path / "gone.lbrn2", datetime(2026, 1, 1)) == FileVersion("missing", [])
+
+
+def test_thumbnail_from_git_version(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    commit(tmp_path, "a.lbrn2", lbrn(10, 50, thumb=PNG), "2026-03-01T10:00:00")
+    commit(tmp_path, "a.lbrn2", lbrn(20, 50, thumb=PNG + b"v2"), "2026-03-03T10:00:00")
+    assert version_at(tmp_path / "a.lbrn2", datetime(2026, 3, 2)).thumbnail == PNG
+
+
+def test_no_thumbnail_is_none(tmp_path):
+    (tmp_path / "a.lbrn2").write_bytes(lbrn(10, 50))
+    assert version_at(tmp_path / "a.lbrn2", datetime(2026, 3, 2)).thumbnail is None

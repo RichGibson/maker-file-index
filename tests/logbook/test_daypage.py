@@ -100,3 +100,14 @@ def test_same_second_jobs_get_unique_ids():
     out = page([job("19:16:11"), job("19:16:11")])
     assert "notes:job-191611:start" in out and "notes:job-191611-2:start" in out
     assert unsafe_to_merge(out) is None
+
+
+def test_thumbnail_shown_when_saved():
+    def thumbs(project, when):
+        return FileVersion("git abc123", [Layer(0, "C00", "Cut", 20.0, 90.0, 90.0, 1, 1)], b"\x89PNGx")
+    out = render_day(DAY, [job("19:16:11")], {}, thumbs, save_thumb=lambda b: "images/thumbs/abc.png")
+    assert "![valet_small.lbrn2 thumbnail](images/thumbs/abc.png)" in out
+
+
+def test_no_thumbnail_line_without_image():
+    assert "thumbnail](" not in page([job("19:16:11")])

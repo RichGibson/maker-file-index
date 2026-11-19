@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -37,7 +38,8 @@ def _build(args: argparse.Namespace) -> int:
         if not jobs:
             continue
         page = log_dir / f"{day.isoformat()}.md"
-        generated = render_day(day, jobs, load_stored(log_dir, day), version_at)
+        generated = render_day(day, jobs, load_stored(log_dir, day), version_at,
+                               save_thumb=lambda png: _save_thumb(log_dir, png))
         if page.exists():
             existing = page.read_text()
             if not existing.startswith(GENERATED_MARK):
@@ -57,6 +59,16 @@ def _build(args: argparse.Namespace) -> int:
     print(f"wrote {wrote} pages, skipped {skipped}")
     _write_index(log_dir, by_day)
     return 0
+
+
+def _save_thumb(log_dir: Path, png: bytes) -> str:
+    """Store a project thumbnail once, named by content, and return its page-relative path."""
+    name = f"{hashlib.sha1(png).hexdigest()[:12]}.png"
+    path = log_dir / "images" / "thumbs" / name
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(png)
+    return f"images/thumbs/{name}"
 
 
 def _write_index(log_dir: Path, by_day: dict) -> None:

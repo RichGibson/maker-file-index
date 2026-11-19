@@ -68,3 +68,17 @@ def test_build_writes_index(tmp_path):
     index = (log_dir / "index.md").read_text()
     assert index.startswith(GENERATED_MARK)
     assert index.index("2026-11-18.md") < index.index("2026-11-16.md")
+
+
+def test_build_saves_thumbnail(tmp_path):
+    import base64
+    proj = tmp_path / "earring.lbrn2"
+    png = b"\x89PNG\r\n\x1a\nearring"
+    proj.write_text(f'<LightBurnProject><Thumbnail Source="{base64.b64encode(png).decode()}"/></LightBurnProject>')
+    csv = tmp_path / "jobs.csv"
+    csv.write_text(HEAD + f"2026-11-18T22:32:54,Ruida 6445S,{proj},\n")
+    log_dir = tmp_path / "log"
+    main(["build", "--log-dir", str(log_dir), "--jobs-csv", str(csv), "--debug-log", str(tmp_path / "x"), "--day", "2026-11-18"])
+    thumbs = list((log_dir / "images" / "thumbs").glob("*.png"))
+    assert len(thumbs) == 1 and thumbs[0].read_bytes() == png
+    assert f"(images/thumbs/{thumbs[0].name})" in (log_dir / "2026-11-18.md").read_text()

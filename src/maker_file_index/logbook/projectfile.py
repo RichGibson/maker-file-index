@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from maker_file_index.plugins.lightburn import _lb_parse_cut_settings
+from maker_file_index.plugins.lightburn import _decode_b64, _find_thumbnail_b64, _lb_parse_cut_settings
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,20 @@ class Layer:
 class FileVersion:
     source: str
     layers: list[Layer] = field(default_factory=list)
+    thumbnail: bytes | None = None
+
+
+def thumbnail_from_bytes(xml: bytes) -> bytes | None:
+    """The preview image LightBurn embeds in a project file, if any."""
+    try:
+        b64 = _find_thumbnail_b64(ET.fromstring(xml))
+        return _decode_b64(b64) if b64 else None
+    except (ET.ParseError, ValueError):
+        return None
+
+
+def _version(source: str, data: bytes) -> FileVersion:
+    return FileVersion(source, layers_from_bytes(data), thumbnail_from_bytes(data))
 
 
 def layers_from_bytes(xml: bytes) -> list[Layer]:
@@ -86,7 +100,7 @@ def _from_git(project: Path, when: datetime) -> FileVersion | None:
     try:
         data = subprocess.run(["git", "-C", str(top_path), "show", f"{short}:{rel}"],
                               capture_output=True, check=True).stdout
-        return FileVersion(f"git {short}", layers_from_bytes(data))
+        return _version(f"git {short}", data)
     except (subprocess.CalledProcessError, ET.ParseError):
         return None
 
@@ -98,7 +112,7 @@ def version_at(project: Path, when: datetime) -> FileVersion:
         return from_git
     if project.is_file():
         try:
-            return FileVersion("current file", layers_from_bytes(project.read_bytes()))
+            return _version("current file", project.read_bytes())
         except ET.ParseError:
             return FileVersion("current file", [])
     return FileVersion("missing", [])

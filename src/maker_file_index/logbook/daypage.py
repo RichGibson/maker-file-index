@@ -66,7 +66,8 @@ def _settings_summary(settings: list[Setting] | None) -> str:
 
 def render_day(day: date, jobs: list[Job], stored: dict[datetime, list[Setting]],
                versions: Callable[[Path, datetime], FileVersion],
-               files_root: Path = FILES_ROOT) -> str:
+               files_root: Path = FILES_ROOT,
+               save_thumb: Callable[[bytes], str] | None = None) -> str:
     day_jobs = sorted((j for j in jobs if j.when.date() == day), key=lambda j: j.when)
     groups = []
     number = 0
@@ -95,7 +96,8 @@ def render_day(day: date, jobs: list[Job], stored: dict[datetime, list[Setting]]
                          "project": label, "settings": _settings_summary(settings)})
             if j.project is not None and label not in files:
                 v = versions(j.project, j.when)
-                files[label] = {"source": v.source, "layers": [
+                thumb = save_thumb(v.thumbnail) if (save_thumb and v.thumbnail) else None
+                files[label] = {"source": v.source, "thumb": thumb, "alt": j.project.name, "layers": [
                     {"name": layer.name, "mode": layer.mode, "speed": _num(layer.speed),
                      "power": _power(layer.min_power, layer.max_power),
                      "passes": layer.passes, "shapes": layer.shapes}
